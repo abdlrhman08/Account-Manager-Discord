@@ -10,6 +10,8 @@ Password: {account.password}
 Phone: {account.phonenum}
 SafeUM User: {account.safe_um_user}
 SafeUM Pass: {account.safe_um_pass}
+Serial Number: {account.serial_number}
+Restore Code: {account.restore_code}
 Security Question: {account.security_q}
 Answer: {account.q_ans}
 Description {account.description}"""
