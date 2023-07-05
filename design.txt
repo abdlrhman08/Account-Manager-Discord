@@ -1,0 +1,20 @@
+Admin-Panel
+    Commands:
+        /addacc: Adds an account to the database                            [Not the best way]
+        /schedule: shows all scheduled payments                              #DONE
+        /done: shows all finished acounts                                    #DONE
+        /paid [user-accountemail]: removes the payment from the scheduled   #DONE
+        payments
+        /export [id]: can be used by the owner to export all account infos #DONE
+
+Tickets
+    Commands:
+        /export: can be used by the owner to export all account info        #DONE
+        /schedule: Schedules payment                                        #DONE
+
+TODO: move all tokens to environment variables
+    and figure out support ticket
+        
+
+Problems: if a user has multiple accounts that are unfinushed marking one dn is impossible
+    
