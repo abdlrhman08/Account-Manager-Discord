@@ -5,13 +5,14 @@ from dbmanager.models import Base, OWAccount, Payment
 
 
 class DBManager():    
-    def __init__(self, username: str, password: str) -> None:
+    def __init__(self, username: str, password: str, database: str) -> None:
         self.username = username
         self.password = password
+        self.database = database
 
 
         #TODO: Change to host
-        self.db_url = f"postgresql+asyncpg://{self.username}:{self.password}@localhost/accounts"
+        self.db_url = f"postgresql+asyncpg://{self.username}:{self.password}@localhost/{self.database}"
 
         self.engine = create_async_engine(
             self.db_url,

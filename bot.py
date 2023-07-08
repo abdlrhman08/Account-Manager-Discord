@@ -17,6 +17,8 @@ load_dotenv()
 TOKEN = os.getenv("TOKEN")
 DB_USER = os.getenv("DB_USER")
 DB_PASS = os.getenv("DB_PASS")
+DB_NAME = os.getenv("DB_NAME")
+GUILD_ID = os.getenv("SERVER_ID")
 
 #TODO: Move all tokens and psswords to env. variables
 #DONE
@@ -24,7 +26,7 @@ DB_PASS = os.getenv("DB_PASS")
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 bot.remove_command("help")
 
-db = DBManager(DB_USER, DB_PASS)
+db = DBManager(DB_USER, DB_PASS, DB_NAME)
 
 ticketEmbed = discord.Embed(title="Account request", description="If you want an account to start playing please click the button below to start a ticket. If you have been already given an account, a new one cannot be given")
 
@@ -34,6 +36,14 @@ async def on_ready():
     bot.add_view(views.TicketDone(db))
     bot.add_view(views.PaymentConfirmation(db))
     await db.create_tables()
+
+    channel = discord.utils.get(bot.get_guild(int(GUILD_ID)).text_channels, name="account-request")
+
+    if channel is not None:
+        last_msg = await channel.fetch_message(channel.last_message_id)
+
+        if last_msg.content == "The bot is currently closed you can request an account when it is back online":
+            await last_msg.delete()
 
     print("Bot is connected and online") 
 
@@ -162,6 +172,16 @@ async def find(ctx: commands.Context, id: int):
 
         channel = discord.utils.get(ctx.guild.channels, id=int(payment.channelid))
         await ctx.send(f"Channel associated with payment id {id}: {channel.mention}")
+
+@bot.command()
+async def close(ctx: commands.Context):
+    if (ctx.channel.name == "admin-panel"):
+        await ctx.send("Closing bot")
+
+        channel = discord.utils.get(ctx.guild.channels, name="account-request")
+        await channel.send("The bot is currently closed you can request an account when it is back online")
+        
+        await bot.close()
 
 def get_channel_member(channel: discord.TextChannel):
     for member in channel.members:
