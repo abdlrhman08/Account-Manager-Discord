@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from dbmanager.models import Base, OWAccount, Payment 
 
@@ -27,12 +27,40 @@ class DBManager():
     def __exit__(self):
         self.engine.dispose()
 
-
     async def create_tables(self) -> None:
-        session = async_sessionmaker(self.engine, expire_on_commit=False)
 
         async with self.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+
+    async def get_supply_size(self):
+        session = async_sessionmaker(self.engine, expire_on_commit=False)
+
+        async with session() as session:
+            #All accounts
+            all =  await session.execute(select(func.count(OWAccount.id)).select_from(OWAccount).filter(OWAccount.taken == False))
+            fresh =  await session.execute(select(func.count(OWAccount.id)).select_from(OWAccount).filter(
+                OWAccount.type == 0,
+                OWAccount.taken == False
+            ))
+            
+            one_role = await session.execute(select(func.count(OWAccount.id)).select_from(OWAccount).filter(
+                OWAccount.type == 1,
+                OWAccount.taken == False
+            ))
+
+            two_role =  await session.execute(select(func.count(OWAccount.id)).select_from(OWAccount).filter(
+                OWAccount.type == 2,
+                OWAccount.taken == False
+            ))
+
+            three_role =  await session.execute(select(func.count(OWAccount.id)).select_from(OWAccount).filter(
+                OWAccount.type == 3,
+                OWAccount.taken == False
+            ))                
+
+            #TODO: ad other roles
+
+            return all.scalar(), fresh.scalar(), one_role.scalar(), two_role.scalar(), three_role.scalar()
 
     async def get_account(self, id: int) -> OWAccount:
         session = async_sessionmaker(self.engine, expire_on_commit=False)

@@ -9,19 +9,20 @@ class OWAccount(Base):
     __tablename__ = "accounts"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    type: Mapped[int] = mapped_column(nullable=False)
+    
     email: Mapped[str] = mapped_column(String(255), primary_key=True, nullable=False)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
     user: Mapped[str] = mapped_column(String(255), nullable=True)
 
-    serial_number: Mapped[str] = mapped_column(String(100), primary_key=True, nullable=False)
-    restore_code: Mapped[str] = mapped_column(String(100), primary_key=True, nullable=False)
-
-    description: Mapped[str] = mapped_column(String(255), nullable=True)
+    battle_tag: Mapped[str] = mapped_column(String(20), nullable=True)
     
     phonenum: Mapped[str] = mapped_column(String(15), nullable=True) 
 
     safe_um_user: Mapped[str] = mapped_column(String(30), nullable=True)
     safe_um_pass: Mapped[str] = mapped_column(String(30), nullable=True)
+
+    description: Mapped[str] = mapped_column(String(255), nullable=True)
 
     security_q: Mapped[str] = mapped_column(String(255), nullable=True)
     q_ans: Mapped[str] = mapped_column(String(255), nullable=True)

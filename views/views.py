@@ -77,42 +77,86 @@ class PaymentConfirmation(discord.ui.View):
 
 
 class TicketStarterView(discord.ui.View):
-    def __init__(self, dbManager: DBManager) -> None:
+    account_type : str = None
+
+    def __init__(self, dbManager: DBManager, bot) -> None:
         super().__init__(timeout=None)
 
         self.dbManager = dbManager
+        self.bot = bot
 
+    @discord.ui.select(
+        custom_id="type_select",
+        placeholder = "Choose a account type",
+        min_values = 1, # the minimum number of values that must be selected by the users
+        max_values = 1, # the maximum number of values that can be selected by the users
+        options = [
+            discord.SelectOption(
+                label="Fresh Account",
+                value="0r",
+                description="Fresh account to unlock competitive"
+            ),
+            discord.SelectOption(
+                label="1 Role",
+                value="1r",
+                description="Account for 1 role derank"
+            ),
+            discord.SelectOption(
+                label="2 Role",
+                value="2r",
+                description="Account for 1 role derank"
+            ),
+            discord.SelectOption(
+                label="3 Role",
+                value="3r",
+                description="Account for 1 role derank"
+            )
+        ]
+    )
+    async def select_callback(self, interaction: discord.Interaction, select: discord.ui.Select): # the function called when the user is done selecting options
+        self.account_type = select.values[0]
+        await interaction.response.defer()
+        
     @discord.ui.button(label="Request an account", style=discord.ButtonStyle.blurple, custom_id="ticket_button")
     async def initTicket(self, interaction: discord.Interaction, button: discord.ui.Button):
         guild = interaction.guild
 
         userCheck = await self.dbManager.check_user(interaction.user.name+interaction.user.discriminator)
 
+
+        print(self.account_type)   
         if userCheck == False:
             await interaction.response.send_message("You already have an account requested, please finish it first", ephemeral=True)
-        else:
-            overwrites = {
-                guild.default_role: discord.PermissionOverwrite(view_channel=False, send_messages=False),
-                interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True),
-                guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True),
+            self.account_type = None
+            return
+        
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(view_channel=False, send_messages=False),
+            interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True),
+            guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True),
 
-                #TODO: add owner permision
-                guild.owner: discord.PermissionOverwrite(view_channel=True, send_messages=True)
-            }
+            #TODO: add owner permision
+            guild.owner: discord.PermissionOverwrite(view_channel=True, send_messages=True)
+        }
+
+        OWAccount = await self.dbManager.get_new_account(interaction.user.name+interaction.user.discriminator)
             
-            OWAccount = await self.dbManager.get_new_account(interaction.user.name+interaction.user.discriminator)
-            
-            if OWAccount is None:
-                await interaction.response.send_message("There is no any account available currently, please try again soon", ephemeral=True)
-                return
+        if OWAccount is None:
+            await interaction.response.send_message("There is no any account available currently, please try again soon", ephemeral=True)
+            self.account_type = None
+            return
 
-            #TODO: Add email password entry and change taken to true
-            AccountReturnEmbed = discord.Embed(title="Account Information", description=f"E-mail: {OWAccount.email}\nBattle.net Password: {OWAccount.password}\nSerial Number: {OWAccount.serial_number}\nRestore Code: {OWAccount.restore_code}")
-            AccountReturnEmbed.add_field(name="More Help..", value="After finishing the account click the Done button. You will be asked to write a description for what you did and your cash payment number, then the owner will check the account and schedule a payment\nIf any help needed you can write a message, the owner can see it", inline=False)
+        #TODO: Add email password entry and change taken to true
+        AccountReturnEmbed = discord.Embed(title="Account Information", description=f"E-mail: {OWAccount.email}\nBattle.net Password: {OWAccount.password}")
+        AccountReturnEmbed.add_field(name="More Help..", value="After finishing the account click the Done button. You will be asked to write a description for what you did and your cash payment number, then the owner will check the account and schedule a payment\nIf any help needed you can write a message, the owner can see it", inline=False)
 
-            ticket = await guild.create_text_channel(name=f"account-for-{interaction.user.name+interaction.user.discriminator}", overwrites=overwrites, reason=f"Account request for {interaction.user}", category=guild.get_channel(interaction.channel.category_id))
+        ticket = await guild.create_text_channel(name=f"account-for-{interaction.user.name+interaction.user.discriminator}", overwrites=overwrites, reason=f"Account request for {interaction.user}", category=guild.get_channel(interaction.channel.category_id))
            
-            await self.dbManager.set_channel(OWAccount.id, str(ticket.id))
+        await self.dbManager.set_channel(OWAccount.id, str(ticket.id))
            
-            await ticket.send(embed=AccountReturnEmbed, view=TicketDone(self.dbManager))
-            await interaction.response.send_message(f"Opened ticket at {ticket.mention}", ephemeral=True)
+        await ticket.send(embed=AccountReturnEmbed, view=TicketDone(self.dbManager))
+        await interaction.response.send_message(f"Opened ticket at {ticket.mention}", ephemeral=True)
+        
+        self.bot.accounts_count -= 1
+        self.account_type = None
+        await self.bot.update_stock()

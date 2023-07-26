@@ -2,6 +2,8 @@ import discord
 import typing
 import os
 
+import asyncio
+
 from discord.ext import commands
 
 from views import views
@@ -20,158 +22,121 @@ DB_PASS = os.getenv("DB_PASS")
 DB_NAME = os.getenv("DB_NAME")
 GUILD_ID = os.getenv("SERVER_ID")
 
-#TODO: Move all tokens and psswords to env. variables
-#DONE
+discord.utils.setup_logging()
 
-bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
-bot.remove_command("help")
+class AccountManager(commands.Bot):
 
-db = DBManager(DB_USER, DB_PASS, DB_NAME)
+    def __init__(self):
+        super().__init__(command_prefix="!", intents=discord.Intents.all())
 
-ticketEmbed = discord.Embed(title="Account request", description="If you want an account to start playing please click the button below to start a ticket. If you have been already given an account, a new one cannot be given")
+        self.db = DBManager(DB_USER, DB_PASS, DB_NAME)
 
-@bot.event
-async def on_ready():
-    bot.add_view(views.TicketStarterView(db))
-    bot.add_view(views.TicketDone(db))
-    bot.add_view(views.PaymentConfirmation(db))
-    await db.create_tables()
+        self.request_channel : discord.TextChannel = None
+        self.admin_panel : discord.TextChannel = None
 
-    channel = discord.utils.get(bot.get_guild(int(GUILD_ID)).text_channels, name="account-request")
+        self.stock_update : discord.Message = None
 
-    if channel is not None:
-        last_msg = await channel.fetch_message(channel.last_message_id)
+        self.accounts_count = 0
+        self.fresh_count = 0
+        self.one_role_count = 0
+        self.two_role_count = 0
+        self.three_role_count = 0
+
+    async def on_ready(self):
+        await super().wait_until_ready()
+        
+        await self.db.create_tables()
+
+        super().add_view(views.TicketStarterView(self.db, self))
+        super().add_view(views.TicketDone(self.db))
+        super().add_view(views.PaymentConfirmation(self.db))
+
+        self.main_guild = super().get_guild(int(GUILD_ID))
+        if (self.main_guild is not None): 
+            self.admin_panel = discord.utils.get(self.main_guild.text_channels, name="admin-panel")
+            self.request_channel = discord.utils.get(self.main_guild.text_channels, name="account-request")
+            self.stock_update = [message async for message in self.request_channel.history(limit=1)][0]
+
+            #Update stock on start
+            self.accounts_count, self.fresh_count, self.one_role_count, self.two_role_count, self.three_role_count = await self.db.get_supply_size()
+            await self.update_stock()
+            
+        print("Bot is connected and online")
+        
+
+
+        #TODO: Fix if needed
+        ''''
+        if self.request_channel is not None:
+            last_msg = await self.request_channel.fetch_message(self.request_channel.last_message_id)
 
         if last_msg.content == "The bot is currently closed you can request an account when it is back online":
-            await last_msg.delete()
+            await last_msg.delete()'''
 
-    print("Bot is connected and online") 
 
-@bot.event
-async def on_guild_join(guild: discord.Guild):
+    async def on_guild_join(self, guild: discord.Guild):    
+        adminPanelPermissions = {
+            guild.default_role: discord.PermissionOverwrite(view_channel=False),
+            guild.owner: discord.PermissionOverwrite(view_channel=True, send_messages=True),
+            guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
+        }
 
-    adminPanelPermissions = {
-        guild.default_role: discord.PermissionOverwrite(view_channel=False),
-        guild.owner: discord.PermissionOverwrite(view_channel=True, send_messages=True),
-        guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
-    }
+        ticketChannelPermission = {
+            guild.default_role: discord.PermissionOverwrite(view_channel=True, send_messages=False),
+            guild.owner: discord.PermissionOverwrite(view_channel=True, send_messages=True),
+            guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
+        }
 
-    ticketChannelPermission = {
-        guild.default_role: discord.PermissionOverwrite(view_channel=True, send_messages=False),
-        guild.owner: discord.PermissionOverwrite(view_channel=True, send_messages=True),
-        guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
-    }
-
-    admin_panel = discord.utils.get(guild.text_channels, name="admin-panel")
-
-    if admin_panel is not None:
-        print("Server already has channels, not creating new ones")
-    else:
-        adminCat = await guild.create_category(name="admin", overwrites=adminPanelPermissions)
-        ticketCat = await guild.create_category(name="tickets")
-
-        requestChannel = await guild.create_text_channel(name="account-request", category=ticketCat, overwrites=ticketChannelPermission)
-        await requestChannel.send(embed=ticketEmbed, view=views.TicketStarterView(db))
-
-        await guild.create_text_channel(name="admin-panel", overwrites=adminPanelPermissions, category=adminCat)
-
-@bot.command()
-async def done(ctx: commands.Context):
-
-    if (ctx.channel == discord.utils.get(ctx.guild.text_channels, name="admin-panel")):
-        FinishedAccountEmbed = discord.Embed(title="Finished Accounts")
-
-        account: OWAccount
-
-        finishedAccounts = await db.get_finished_accounts()
-
-        if len(finishedAccounts) != 0:
-            for account in finishedAccounts:
-                FinishedAccountEmbed.add_field(name="", value=f"ID: {account.id}, E-mail: {account.email}", inline=False)
+        if self.admin_panel is not None:
+            print("Server already has channels, not creating new ones")
         else:
-            FinishedAccountEmbed.add_field(name="", value="There is no any finished accounts currently", inline=False)
+            ticketEmbed = discord.Embed(title="Account request", description="If you want an account to start playing please click the button below to start a ticket. If you have been already given an account, a new one cannot be given")
 
-        FinishedAccountEmbed.add_field(name="More help..", value="To export full info, use the command !export [email]", inline=False)
+            adminCat = await guild.create_category(name="admin", overwrites=adminPanelPermissions)
+            ticketCat = await guild.create_category(name="tickets")
 
-        await ctx.send(embed=FinishedAccountEmbed)
+            self.request_channel = await guild.create_text_channel(name="account-request", category=ticketCat, overwrites=ticketChannelPermission)
+            
 
-@bot.command()
-async def export(ctx: commands.Context, id: typing.Optional[int]):
-    adminpanel = discord.utils.get(ctx.guild.text_channels, name="admin-panel")
+            self.stock_update = await self.request_channel.send(
+                content=f"""**Current Stock**
+Available Accounts: {self.accounts_count}
 
-    if (ctx.channel == adminpanel):
-        if (id is None):
-            await ctx.send("Please provide the id of the account to export")
-            return
-        else:
-            account = await db.get_account(id)
-            info = utils.export(account)
-            await ctx.channel.send(info)
+**Accounts needed:**
+50 Wins: {self.fresh_count}
 
-    elif ("account-for-" in ctx.channel.name and ctx.author == ctx.guild.owner):
-        account = await db.get_account_by_channel(str(ctx.channel.id))
+One role: {self.one_role_count}
 
-        #TODO: add the export feature
-        #DONE
-        info = utils.export(account)
-        
-        await ctx.message.delete()
-        await adminpanel.send(f"{ctx.guild.owner.mention}\n" + info)
+Two role: {self.two_role_count}
 
+Three role: {self.three_role_count}
+_ _
+""")          
+            await asyncio.sleep(10)
+            await self.request_channel.send(embed=ticketEmbed, view=views.TicketStarterView(self.db, self))
+            #Create the administrator panel
+            self.admin_panel = await guild.create_text_channel(name="admin-panel", overwrites=adminPanelPermissions, category=adminCat) 
 
-@bot.command()
-async def schedule(ctx: commands.Context, id: typing.Optional[int], amount: typing.Optional[int], date: typing.Optional[str]):
-    if (ctx.author == ctx.guild.owner):
+    async def update_stock(self, pull: bool = False):
 
-        if ("account-for-" in ctx.channel.name):
-            payment = await db.get_payment_by_id(id)
+        if pull:
+            self.accounts_count, self.fresh_count, self.one_role_count, self.two_role_count, self.three_role_count = await self.db.get_supply_size()
 
-            await ctx.message.delete()
-            await db.set_payment_info(id, date, amount)
+        await self.stock_update.edit(content=f"""**Current Stock**
+Available Accounts: {self.accounts_count}
 
-            member = get_channel_member(ctx.channel)
+**Accounts needed:**
+50 Wins: {self.fresh_count}
 
-            await ctx.send(f"{member.mention}\nAccount has been checked and payment has been scheduled for {date}")
-        
-        elif (ctx.channel.name == "admin-panel"):
-            payments = await db.get_payments()
+One role: {self.one_role_count}
 
-            scheduledPaymentsEmbed = discord.Embed(title="Scheduled payments")
+Two role: {self.two_role_count}
 
-            if len(payments) == 0:
-                scheduledPaymentsEmbed.add_field(name="", value="No current payments registered")
+Three role: {self.three_role_count}
+_ _
+""")
 
-            for payment in payments:
-                date = payment.paymentDate
-
-                if date is None:
-                    date = "Unscheduled"
-
-                scheduledPaymentsEmbed.add_field(name="", value=f"Process ID: {payment.id}, User: {payment.user}, Number: {payment.paymentNum}, Amount: {payment.amount}, Date: {date}, Paid: {payment.payed}, Confirmed: {payment.confirmed}", inline=False)
-
-            await ctx.send(embed=scheduledPaymentsEmbed)
-
-@bot.command()
-async def paid(ctx: commands.Context, id: int):
-    if (ctx.channel.name == "admin-panel"):
-        currentPayment = await db.set_payment_done(id)
-        AccountDoneEmbed = discord.Embed(title="Payment placed", description=f"Your scheduled paymen has been placed, please confirm your payment after receiving using the button below. You will be asked to write the amount received")
-        
-        payment = await db.get_payment_by_id(id)
-
-        channel = discord.utils.get(ctx.guild.channels, id=int(payment.channelid))
-        member = get_channel_member(channel)
-
-        await channel.send(f"{member.mention}\n", embed=AccountDoneEmbed, view=views.PaymentConfirmation(db))
-        await ctx.send(f"Payment for {currentPayment.user} is made, waiting for user's confirmation")
-
-@bot.command()
-async def find(ctx: commands.Context, id: int):
-    if (ctx.channel.name == "admin-panel"):
-        payment = await db.get_payment_by_id(id)
-
-        channel = discord.utils.get(ctx.guild.channels, id=int(payment.channelid))
-        await ctx.send(f"Channel associated with payment id {id}: {channel.mention}")
+'''
 
 @bot.command()
 async def close(ctx: commands.Context):
@@ -183,10 +148,18 @@ async def close(ctx: commands.Context):
         
         await bot.close()
 
-def get_channel_member(channel: discord.TextChannel):
-    for member in channel.members:
-        if (member != channel.guild.me and member != channel.guild.owner):
-            return member
+'''
+AccountBot = AccountManager()
 
+async def main():
+    async with AccountBot:
+        await AccountBot.load_extension("cogs.administration")
+        await AccountBot.load_extension("cogs.dev")
+        await AccountBot.start(TOKEN)
 
-bot.run(TOKEN)
+if (__name__ == "__main__"):
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Closing")
+
