@@ -110,7 +110,9 @@ class Administration(commands.Cog):
 
     @commands.command()
     async def upstock(self, ctx: commands.Context):
-        await self.bot.update_stock(True)
+        if (self.__inadminpanel(ctx)):
+            await self.bot.update_stock(True)
+            await ctx.send("Updated stock status")
 
     #To check if the commnd called in the right place
     def __inadminpanel(self, ctx: commands.Context):

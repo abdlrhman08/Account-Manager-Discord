@@ -37,7 +37,7 @@ class DBManager():
 
         async with session() as session:
             #All accounts
-            all =  await session.execute(select(func.count(OWAccount.id)).select_from(OWAccount).filter(OWAccount.taken == False))
+
             fresh =  await session.execute(select(func.count(OWAccount.id)).select_from(OWAccount).filter(
                 OWAccount.type == 0,
                 OWAccount.taken == False
@@ -56,11 +56,16 @@ class DBManager():
             three_role =  await session.execute(select(func.count(OWAccount.id)).select_from(OWAccount).filter(
                 OWAccount.type == 3,
                 OWAccount.taken == False
-            ))                
+            ))
 
-            #TODO: ad other roles
 
-            return all.scalar(), fresh.scalar(), one_role.scalar(), two_role.scalar(), three_role.scalar()
+            fresh_count = fresh.scalar()
+            one_role_count = one_role.scalar()
+            two_role_count = two_role.scalar()                
+            three_role_count = three_role.scalar()
+            total = fresh_count + one_role_count + two_role_count + three_role_count 
+
+            return total, fresh_count, one_role_count, two_role_count, three_role_count
 
     async def get_account(self, id: int) -> OWAccount:
         session = async_sessionmaker(self.engine, expire_on_commit=False)
@@ -81,20 +86,22 @@ class DBManager():
             return result.scalars().one()
 
 
-    async def get_new_account(self, user: str):
+    async def get_new_account(self, user: str, type: int):
         session = async_sessionmaker(self.engine, expire_on_commit=False)
 
         async with session() as session:
-            query = select(OWAccount).where(OWAccount.taken==False)
+            query = select(OWAccount).where(
+                OWAccount.taken==False,
+                OWAccount.type == type
+            )
+
             result = await session.execute(query)
 
             account = result.scalars().first()
 
-            if account is None:
-                return None
-
-            account.user = user
-            account.taken = True
+            if account is not None:                
+                account.user = user
+                account.taken = True
 
             await session.commit()
 
@@ -215,19 +222,26 @@ class DBManager():
 
     async def check_user(self, username: str):
         session = async_sessionmaker(self.engine, expire_on_commit=False)
-
+        
         async with session() as session:
-            query = select(OWAccount).filter(
+
+            account_count =  await session.execute(select(func.count(OWAccount.id)).select_from(OWAccount).filter(
+                OWAccount.user == username,
+                OWAccount.finished == False
+            ))
+
+            #A better and lighter approach is to get the count
+            
+            '''query = select(OWAccount).filter(
                 OWAccount.user == username,
                 OWAccount.finished == False
             )
 
             result = await session.execute(query)
+            '''
 
-            if len(result.scalars().all()) > 0:
-                print("Returned")
+            if  (account_count.scalar() > 0):
                 return False
-            
         return True
 
 

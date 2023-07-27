@@ -1,7 +1,7 @@
 import discord
 
 from dbmanager.dbmanager import DBManager
-from dbmanager.models import Payment
+from dbmanager.models import Payment, OWAccount
 
 
 class DoneForm(discord.ui.Modal):
@@ -77,7 +77,7 @@ class PaymentConfirmation(discord.ui.View):
 
 
 class TicketStarterView(discord.ui.View):
-    account_type : str = None
+    answers: dict = dict()
 
     def __init__(self, dbManager: DBManager, bot) -> None:
         super().__init__(timeout=None)
@@ -114,49 +114,67 @@ class TicketStarterView(discord.ui.View):
         ]
     )
     async def select_callback(self, interaction: discord.Interaction, select: discord.ui.Select): # the function called when the user is done selecting options
-        self.account_type = select.values[0]
+        self.answers[str(interaction.user)] = select.values[0]
         await interaction.response.defer()
         
     @discord.ui.button(label="Request an account", style=discord.ButtonStyle.blurple, custom_id="ticket_button")
     async def initTicket(self, interaction: discord.Interaction, button: discord.ui.Button):
         guild = interaction.guild
 
+        user_str = str(interaction.user)
+    
+        #Check if the user has chosen an answer
+        if (user_str not in self.answers.keys()):
+            await interaction.response.send_message("Please select your account type first", ephemeral=True)
+            return
+
+        #Check if the user alreasy has an account
         userCheck = await self.dbManager.check_user(interaction.user.name+interaction.user.discriminator)
 
-
-        print(self.account_type)   
-        if userCheck == False:
+        if (not userCheck):
             await interaction.response.send_message("You already have an account requested, please finish it first", ephemeral=True)
-            self.account_type = None
+            self.answers.pop(user_str)
             return
         
+        #TODO: Put overwrites in their own place
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False, send_messages=False),
             interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True),
             guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True),
 
-            #TODO: add owner permision
+            #TODO: add owner permision and role permission
             guild.owner: discord.PermissionOverwrite(view_channel=True, send_messages=True)
         }
 
-        OWAccount = await self.dbManager.get_new_account(interaction.user.name+interaction.user.discriminator)
-            
-        if OWAccount is None:
+        retrieved_acc : OWAccount = None
+
+        if (self.answers[user_str] == "0r"):
+            retrieved_acc = await self.dbManager.get_new_account(interaction.user.name+interaction.user.discriminator, 0)
+        elif (self.answers[user_str] == "1r"):
+            retrieved_acc = await self.dbManager.get_new_account(interaction.user.name+interaction.user.discriminator, 1)
+        elif (self.answers[user_str] == "2r"):
+            retrieved_acc = await self.dbManager.get_new_account(interaction.user.name+interaction.user.discriminator, 2)
+        else:
+            retrieved_acc = await self.dbManager.get_new_account(interaction.user.name+interaction.user.discriminator, 3)
+
+
+        if retrieved_acc is None:
             await interaction.response.send_message("There is no any account available currently, please try again soon", ephemeral=True)
-            self.account_type = None
+            self.answers.pop(user_str)
             return
 
         #TODO: Add email password entry and change taken to true
-        AccountReturnEmbed = discord.Embed(title="Account Information", description=f"E-mail: {OWAccount.email}\nBattle.net Password: {OWAccount.password}")
+        AccountReturnEmbed = discord.Embed(title="Account Information", description=f"E-mail: {retrieved_acc.email}\nBattle.net Password: {retrieved_acc.password}")
         AccountReturnEmbed.add_field(name="More Help..", value="After finishing the account click the Done button. You will be asked to write a description for what you did and your cash payment number, then the owner will check the account and schedule a payment\nIf any help needed you can write a message, the owner can see it", inline=False)
 
         ticket = await guild.create_text_channel(name=f"account-for-{interaction.user.name+interaction.user.discriminator}", overwrites=overwrites, reason=f"Account request for {interaction.user}", category=guild.get_channel(interaction.channel.category_id))
-           
-        await self.dbManager.set_channel(OWAccount.id, str(ticket.id))
-           
         await ticket.send(embed=AccountReturnEmbed, view=TicketDone(self.dbManager))
+
+        await self.dbManager.set_channel(retrieved_acc.id, str(ticket.id))
+        
         await interaction.response.send_message(f"Opened ticket at {ticket.mention}", ephemeral=True)
         
-        self.bot.accounts_count -= 1
-        self.account_type = None
+        self.bot.accounts["total"] -= 1
+        self.bot.accounts[self.answers[user_str]] -= 1
+
         await self.bot.update_stock()

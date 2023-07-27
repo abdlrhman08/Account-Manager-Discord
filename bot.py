@@ -33,14 +33,17 @@ class AccountManager(commands.Bot):
 
         self.request_channel : discord.TextChannel = None
         self.admin_panel : discord.TextChannel = None
+        self.stock_channel: discord.TextChannel = None
 
         self.stock_update : discord.Message = None
 
-        self.accounts_count = 0
-        self.fresh_count = 0
-        self.one_role_count = 0
-        self.two_role_count = 0
-        self.three_role_count = 0
+        self.accounts = {
+            "total": 0,
+            "0r": 0,
+            "1r": 0,
+            "2r": 0,
+            "3r": 0
+        }
 
     async def on_ready(self):
         await super().wait_until_ready()
@@ -55,10 +58,12 @@ class AccountManager(commands.Bot):
         if (self.main_guild is not None): 
             self.admin_panel = discord.utils.get(self.main_guild.text_channels, name="admin-panel")
             self.request_channel = discord.utils.get(self.main_guild.text_channels, name="account-request")
-            self.stock_update = [message async for message in self.request_channel.history(limit=1)][0]
+            self.stock_channel = discord.utils.get(self.main_guild.text_channels, name="stock-status")
+
+            self.stock_update = await self.stock_channel.fetch_message(self.stock_channel.last_message_id)
 
             #Update stock on start
-            self.accounts_count, self.fresh_count, self.one_role_count, self.two_role_count, self.three_role_count = await self.db.get_supply_size()
+            self.accounts["total"], self.accounts["0r"], self.accounts["1r"], self.accounts["2r"], self.accounts["3r"] = await self.db.get_supply_size()
             await self.update_stock()
             
         print("Bot is connected and online")
@@ -81,6 +86,7 @@ class AccountManager(commands.Bot):
             guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
         }
 
+        #Stock channel will also share the same permission
         ticketChannelPermission = {
             guild.default_role: discord.PermissionOverwrite(view_channel=True, send_messages=False),
             guild.owner: discord.PermissionOverwrite(view_channel=True, send_messages=True),
@@ -94,25 +100,25 @@ class AccountManager(commands.Bot):
 
             adminCat = await guild.create_category(name="admin", overwrites=adminPanelPermissions)
             ticketCat = await guild.create_category(name="tickets")
+            stockCat = await guild.create_category(name="stock")
 
             self.request_channel = await guild.create_text_channel(name="account-request", category=ticketCat, overwrites=ticketChannelPermission)
-            
+            self.stock_channel = await guild.create_text_channel(name="stock-status", category=stockCat, overwrites=ticketChannelPermission)
 
-            self.stock_update = await self.request_channel.send(
+            self.stock_update = await self.stock_channel.send(
                 content=f"""**Current Stock**
-Available Accounts: {self.accounts_count}
+Available Accounts: {self.accounts["total"]}
 
 **Accounts needed:**
-50 Wins: {self.fresh_count}
+50 Wins: {self.accounts["0r"]}
 
-One role: {self.one_role_count}
+One role: {self.accounts["1r"]}
 
-Two role: {self.two_role_count}
+Two role: {self.accounts["2r"]}
 
-Three role: {self.three_role_count}
+Three role: {self.accounts["3r"]}
 _ _
 """)          
-            await asyncio.sleep(10)
             await self.request_channel.send(embed=ticketEmbed, view=views.TicketStarterView(self.db, self))
             #Create the administrator panel
             self.admin_panel = await guild.create_text_channel(name="admin-panel", overwrites=adminPanelPermissions, category=adminCat) 
@@ -120,19 +126,19 @@ _ _
     async def update_stock(self, pull: bool = False):
 
         if pull:
-            self.accounts_count, self.fresh_count, self.one_role_count, self.two_role_count, self.three_role_count = await self.db.get_supply_size()
+            self.accounts["total"], self.accounts["0r"], self.accounts["1r"], self.accounts["2r"], self.accounts["3r"] = await self.db.get_supply_size()
 
         await self.stock_update.edit(content=f"""**Current Stock**
-Available Accounts: {self.accounts_count}
+Available Accounts: {self.accounts["total"]}
 
 **Accounts needed:**
-50 Wins: {self.fresh_count}
+50 Wins: {self.accounts["0r"]}
 
-One role: {self.one_role_count}
+One role: {self.accounts["1r"]}
 
-Two role: {self.two_role_count}
+Two role: {self.accounts["2r"]}
 
-Three role: {self.three_role_count}
+Three role: {self.accounts["3r"]}
 _ _
 """)
 
