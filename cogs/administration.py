@@ -82,6 +82,21 @@ class Administration(commands.Cog):
                     scheduledPaymentsEmbed.add_field(name="", value=f"Process ID: {payment.id}, User: {payment.user}, Number: {payment.paymentNum}, Amount: {payment.amount}, Date: {date}, Paid: {payment.payed}, Confirmed: {payment.confirmed}", inline=False)
 
                 await ctx.send(embed=scheduledPaymentsEmbed)
+
+    @commands.command()
+    async def accounts(self, ctx: commands.Context):
+        accounts = await self.bot.db.get_accounts()
+
+        AccountsEmbed = discord.Embed(title="Current accounts on database")
+
+        if len(accounts) == 0:
+            AccountsEmbed.add_field(name="", value="No current payments registered")
+
+            account: OWAccount
+            for account in accounts:
+                AccountsEmbed.add_field(name="", value=f"Account ID: {account.id}, User: {account.user}, Finished: {account.finished}", inline=False)
+
+        await ctx.send(embed=AccountsEmbed)
                 
 
     @commands.command()
@@ -106,7 +121,7 @@ class Administration(commands.Cog):
             account : OWAccount = await self.bot.db.get_account(id)
 
             if (account is None or account.channelid is None):
-                ctx.send("Account not yet associated with a user or channel")
+                await ctx.send("Account not yet associated with a user or channel")
                 return
 
             channel = discord.utils.get(ctx.guild.channels, id=int(account.channelid))

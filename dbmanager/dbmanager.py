@@ -77,6 +77,15 @@ class DBManager():
 
             return result.scalar()
         
+    async def get_accounts(self) -> OWAccount:
+        session = async_sessionmaker(self.engine, expire_on_commit=False)
+
+        async with session() as session:
+            query = select(OWAccount)
+            result = await session.execute(query)
+
+            return result.scalars().all()
+        
     async def get_account_by_channel(self, channelID: str):
         session = async_sessionmaker(self.engine, expire_on_commit=False)
 
