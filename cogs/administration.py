@@ -40,7 +40,7 @@ class Administration(commands.Cog):
                 info = utils.export(account)
                 await ctx.channel.send(info)
 
-        elif ("account-for-" in ctx.channel.name and ctx.author == ctx.guild.owner):
+        elif ("account-for-" in ctx.channel.name and utils.is_admin(self.bot, ctx)):
             account = await self.bot.db.get_account_by_channel(str(ctx.channel.id))
 
             #TODO: add the export feature
@@ -48,7 +48,7 @@ class Administration(commands.Cog):
             info = utils.export(account)
             
             await ctx.message.delete()
-            await self.bot.admin_panel.send(f"{ctx.guild.owner.mention}\n" + info)
+            await self.bot.admin_panel.send(f"{ctx.author.mention}\n" + info)
 
     @commands.command()
     async def schedule(self, ctx: commands.Context, id: typing.Optional[int], amount: typing.Optional[int], date: typing.Optional[str]):
