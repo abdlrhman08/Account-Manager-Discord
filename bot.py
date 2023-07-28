@@ -98,14 +98,16 @@ class AccountManager(commands.Bot):
             guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
         }
 
+        self.trusted_role = self.trusted_role = discord.utils.get(self.main_guild.roles, name="Trustees")
+
         if self.admin_panel is not None:
             print("Server already has channels, not creating new ones")
         else:
             ticketEmbed = discord.Embed(title="Account request", description="If you want an account to start playing please click the button below to start a ticket. If you have been already given an account, a new one cannot be given")
 
             adminCat = await guild.create_category(name="admin", overwrites=adminPanelPermissions)
-            ticketCat = await guild.create_category(name="tickets")
             stockCat = await guild.create_category(name="stock")
+            ticketCat = await guild.create_category(name="tickets")
 
             self.request_channel = await guild.create_text_channel(name="account-request", category=ticketCat, overwrites=ticketChannelPermission)
             self.stock_channel = await guild.create_text_channel(name="stock-status", category=stockCat, overwrites=ticketChannelPermission)
@@ -131,7 +133,7 @@ _ _
     async def update_stock(self, pull: bool = False):
 
         if pull:
-            self.accounts["total"], self.accounts["0r"], self.accounts["1r"], self.accounts["2r"], self.accounts["3r"] = await self.db.get_supply_size()
+            self.accounts["total"], self.accounts["0"], self.accounts["1"], self.accounts["2"], self.accounts["3"] = await self.db.get_supply_size()
 
         await self.stock_update.edit(content=f"""**Current Stock**
 Available Accounts: {self.accounts["total"]}

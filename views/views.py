@@ -124,7 +124,7 @@ class TicketStarterView(discord.ui.View):
         user_str = str(interaction.user)
 
         if (self.bot.trusted_role not in interaction.user.roles):
-            await interaction.response.send_message("You are bot yet trusted, please DM the mods to get the roles and start playing :)", ephemeral=True)
+            await interaction.response.send_message("You are not yet trusted, please DM the mods to get the roles and start playing :)", ephemeral=True)
             return
     
         #Check if the user has chosen an answer
