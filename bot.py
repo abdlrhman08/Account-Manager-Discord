@@ -84,7 +84,8 @@ class AccountManager(commands.Bot):
             await last_msg.delete()'''
 
 
-    async def on_guild_join(self, guild: discord.Guild):    
+    async def on_guild_join(self, guild: discord.Guild):
+
         adminPanelPermissions = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
             guild.owner: discord.PermissionOverwrite(view_channel=True, send_messages=True),
@@ -98,7 +99,7 @@ class AccountManager(commands.Bot):
             guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
         }
 
-        self.trusted_role = self.trusted_role = discord.utils.get(self.main_guild.roles, name="Trustees")
+        self.trusted_role = discord.utils.get(guild.roles, name="Trustees")
 
         if self.admin_panel is not None:
             print("Server already has channels, not creating new ones")
