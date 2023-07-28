@@ -52,7 +52,7 @@ class Administration(commands.Cog):
 
     @commands.command()
     async def schedule(self, ctx: commands.Context, id: typing.Optional[int], amount: typing.Optional[int], date: typing.Optional[str]):
-        if (utils.is_admin(ctx)):
+        if (utils.is_admin(ctx, self.bot)):
 
             if ("account-for-" in ctx.channel.name):
                 payment = await self.bot.db.get_payment_by_id(id)
@@ -103,10 +103,13 @@ class Administration(commands.Cog):
     @commands.command()
     async def find(self, ctx: commands.Context, id: int):
         if (self.__inadminpanel(ctx)):
-            payment : Payment = await self.bot.db.get_payment_by_id(id)
+            account : OWAccount = await self.bot.db.get_account(id)
 
-            channel = discord.utils.get(ctx.guild.channels, id=int(payment.channelid))
-            await ctx.send(f"Channel associated with payment id {id}: {channel.mention}")
+            if (account.channelid is None or account is None):
+                ctx.send("Account not yet associated with a user or channel")
+
+            channel = discord.utils.get(ctx.guild.channels, id=int(account.channelid))
+            await ctx.send(f"Channel associated with account id {id}: {channel.mention}")
 
     @commands.command()
     async def upstock(self, ctx: commands.Context):

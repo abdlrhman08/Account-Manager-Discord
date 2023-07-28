@@ -147,7 +147,9 @@ class TicketStarterView(discord.ui.View):
             guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True),
 
             #TODO: add owner permision and role permission
-            guild.owner: discord.PermissionOverwrite(view_channel=True, send_messages=True)
+            guild.owner: discord.PermissionOverwrite(view_channel=True, send_messages=True),
+            self.bot.manager_role: discord.PermissionOverwrite(view_channel=True, send_messages=True),
+            
         }
 
         account_type = int(self.answers[user_str])

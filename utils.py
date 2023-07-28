@@ -34,5 +34,5 @@ Answer: {account.q_ans}"""
                 return member
             
     @classmethod
-    def is_admin(self, ctx: commands.Context):
-        return ctx.author == ctx.guild.owner 
+    def is_admin(self, bot, ctx: commands.Context):
+        return ctx.author == ctx.guild.owner or  bot.manager_role in ctx.author.roles
