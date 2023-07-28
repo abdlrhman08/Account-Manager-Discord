@@ -157,7 +157,7 @@ class TicketStarterView(discord.ui.View):
 
 
         if retrieved_acc is None:
-            await interaction.response.send_message("There is no any account available currently, please try again soon", ephemeral=True)
+            await interaction.response.send_message("There is no any accounts available currently, please try again soon", ephemeral=True)
             self.answers.pop(user_str)
             return
         
