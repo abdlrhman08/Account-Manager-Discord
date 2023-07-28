@@ -160,6 +160,8 @@ class TicketStarterView(discord.ui.View):
             await interaction.response.send_message("There is no any account available currently, please try again soon", ephemeral=True)
             self.answers.pop(user_str)
             return
+        
+        await interaction.response.defer()
 
         #TODO: Add email password entry and change taken to true
         AccountReturnEmbed = discord.Embed(title="Account Information", description=f"E-mail: {retrieved_acc.email}\nBattle.net Password: {retrieved_acc.password}")
@@ -170,7 +172,7 @@ class TicketStarterView(discord.ui.View):
 
         await self.dbManager.set_channel(retrieved_acc.id, str(ticket.id))
         
-        await interaction.response.send_message(f"Opened ticket at {ticket.mention}", ephemeral=True)
+        await interaction.followup.send(f"Opened ticket at {ticket.mention}", ephemeral=True)
         
         self.bot.accounts["total"] -= 1
         self.bot.accounts[self.answers[user_str]] -= 1
