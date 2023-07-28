@@ -92,9 +92,9 @@ class Administration(commands.Cog):
         if len(accounts) == 0:
             AccountsEmbed.add_field(name="", value="No current payments registered")
 
-            account: OWAccount
-            for account in accounts:
-                AccountsEmbed.add_field(name="", value=f"Account ID: {account.id}, User: {account.user}, Finished: {account.finished}", inline=False)
+        account: OWAccount
+        for account in accounts:
+            AccountsEmbed.add_field(name="", value=f"Account ID: {account.id}, User: {account.user}, Finished: {account.finished}", inline=False)
 
         await ctx.send(embed=AccountsEmbed)
                 
