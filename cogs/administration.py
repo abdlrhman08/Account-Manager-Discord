@@ -94,7 +94,7 @@ class Administration(commands.Cog):
 
         account: OWAccount
         for account in accounts:
-            AccountsEmbed.add_field(name="", value=f"Account ID: {account.id}, User: {account.user}, Finished: {account.finished}", inline=False)
+            AccountsEmbed.add_field(name="", value=f"Account ID: {account.id} E-Mail: {account.email}, User: {account.user}, Finished: {account.finished}", inline=False)
 
         await ctx.send(embed=AccountsEmbed)
                 
