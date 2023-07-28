@@ -38,12 +38,14 @@ class AccountManager(commands.Bot):
 
         self.stock_update : discord.Message = None
 
+        self.trusted_role : discord.Role = None
+
         self.accounts = {
             "total": 0,
-            "0r": 0,
-            "1r": 0,
-            "2r": 0,
-            "3r": 0
+            "0": 0,
+            "1": 0,
+            "2": 0,
+            "3": 0
         }
 
     async def on_ready(self):
@@ -63,8 +65,10 @@ class AccountManager(commands.Bot):
 
             self.stock_update = await self.stock_channel.fetch_message(self.stock_channel.last_message_id)
 
+            self.trusted_role = discord.utils.get(self.main_guild.roles, name="Trustees")
+
             #Update stock on start
-            self.accounts["total"], self.accounts["0r"], self.accounts["1r"], self.accounts["2r"], self.accounts["3r"] = await self.db.get_supply_size()
+            self.accounts["total"], self.accounts["0"], self.accounts["1"], self.accounts["2"], self.accounts["3"] = await self.db.get_supply_size()
             await self.update_stock()
             
         print("Bot is connected and online")
@@ -111,13 +115,13 @@ class AccountManager(commands.Bot):
 Available Accounts: {self.accounts["total"]}
 
 **Accounts needed:**
-50 Wins: {self.accounts["0r"]}
+50 Wins: {self.accounts["0"]}
 
-One role: {self.accounts["1r"]}
+One role: {self.accounts["1"]}
 
-Two role: {self.accounts["2r"]}
+Two role: {self.accounts["2"]}
 
-Three role: {self.accounts["3r"]}
+Three role: {self.accounts["3"]}
 _ _
 """)          
             await self.request_channel.send(embed=ticketEmbed, view=views.TicketStarterView(self.db, self))
@@ -133,13 +137,13 @@ _ _
 Available Accounts: {self.accounts["total"]}
 
 **Accounts needed:**
-50 Wins: {self.accounts["0r"]}
+50 Wins: {self.accounts["0"]}
 
-One role: {self.accounts["1r"]}
+One role: {self.accounts["1"]}
 
-Two role: {self.accounts["2r"]}
+Two role: {self.accounts["2"]}
 
-Three role: {self.accounts["3r"]}
+Three role: {self.accounts["3"]}
 _ _
 """)
 

@@ -12,13 +12,8 @@ class utils():
 
         if (account.type == 0):
             type = "50 Wins"
-        elif (account.type == 1):
-            type = "1 Role"
-        elif (account.type == 2):
-            type = "2 Role"
-        elif (account.type == 3):
-            type = "3 Role"
-
+        else:
+            type = account.type + " Role"
 
         return f"""Info for {account.user} given account
 Recovery mail: {account.email}

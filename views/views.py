@@ -93,22 +93,22 @@ class TicketStarterView(discord.ui.View):
         options = [
             discord.SelectOption(
                 label="Fresh Account",
-                value="0r",
+                value="0",
                 description="Fresh account to unlock competitive"
             ),
             discord.SelectOption(
                 label="1 Role",
-                value="1r",
+                value="1",
                 description="Account for 1 role derank"
             ),
             discord.SelectOption(
                 label="2 Role",
-                value="2r",
+                value="2",
                 description="Account for 1 role derank"
             ),
             discord.SelectOption(
                 label="3 Role",
-                value="3r",
+                value="3",
                 description="Account for 1 role derank"
             )
         ]
@@ -122,6 +122,10 @@ class TicketStarterView(discord.ui.View):
         guild = interaction.guild
 
         user_str = str(interaction.user)
+
+        if (self.bot.trusted_role not in interaction.user.roles):
+            await interaction.response.send_message("You are bot yet trusted, please DM the mods to get the roles and start playing :)", ephemeral=True)
+            return
     
         #Check if the user has chosen an answer
         if (user_str not in self.answers.keys()):
@@ -146,16 +150,8 @@ class TicketStarterView(discord.ui.View):
             guild.owner: discord.PermissionOverwrite(view_channel=True, send_messages=True)
         }
 
-        retrieved_acc : OWAccount = None
-
-        if (self.answers[user_str] == "0r"):
-            retrieved_acc = await self.dbManager.get_new_account(interaction.user.name+interaction.user.discriminator, 0)
-        elif (self.answers[user_str] == "1r"):
-            retrieved_acc = await self.dbManager.get_new_account(interaction.user.name+interaction.user.discriminator, 1)
-        elif (self.answers[user_str] == "2r"):
-            retrieved_acc = await self.dbManager.get_new_account(interaction.user.name+interaction.user.discriminator, 2)
-        else:
-            retrieved_acc = await self.dbManager.get_new_account(interaction.user.name+interaction.user.discriminator, 3)
+        account_type = int(self.answers[user_str])
+        retrieved_acc : OWAccount = await self.dbManager.get_new_account(interaction.user.name+interaction.user.discriminator, account_type)
 
 
         if retrieved_acc is None:
