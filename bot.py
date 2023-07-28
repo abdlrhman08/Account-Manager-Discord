@@ -39,6 +39,7 @@ class AccountManager(commands.Bot):
         self.stock_update : discord.Message = None
 
         self.trusted_role : discord.Role = None
+        self.manager_role: discord.Role = None
 
         self.accounts = {
             "total": 0,
@@ -66,6 +67,7 @@ class AccountManager(commands.Bot):
             self.stock_update = await self.stock_channel.fetch_message(self.stock_channel.last_message_id)
 
             self.trusted_role = discord.utils.get(self.main_guild.roles, name="Trustees")
+            self.manager_role = discord.utils.get(self.main_guild.roles, name="Manager")
 
             #Update stock on start
             self.accounts["total"], self.accounts["0"], self.accounts["1"], self.accounts["2"], self.accounts["3"] = await self.db.get_supply_size()
@@ -89,7 +91,9 @@ class AccountManager(commands.Bot):
         adminPanelPermissions = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
             guild.owner: discord.PermissionOverwrite(view_channel=True, send_messages=True),
-            guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
+            guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True),
+
+            self.manager_role: discord.PermissionOverwrite(view_channel=True, send_messages=True)
         }
 
         #Stock channel will also share the same permission
