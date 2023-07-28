@@ -19,6 +19,7 @@ load_dotenv()
 TOKEN = os.getenv("TOKEN")
 DB_USER = os.getenv("DB_USER")
 DB_PASS = os.getenv("DB_PASS")
+DB_HOST = os.getenv("DB_HOST")
 DB_NAME = os.getenv("DB_NAME")
 GUILD_ID = os.getenv("SERVER_ID")
 
@@ -29,7 +30,7 @@ class AccountManager(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix="!", intents=discord.Intents.all())
 
-        self.db = DBManager(DB_USER, DB_PASS, DB_NAME)
+        self.db = DBManager(DB_USER, DB_PASS, DB_HOST, DB_NAME)
 
         self.request_channel : discord.TextChannel = None
         self.admin_panel : discord.TextChannel = None
