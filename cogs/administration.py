@@ -52,7 +52,7 @@ class Administration(commands.Cog):
 
     @commands.command()
     async def schedule(self, ctx: commands.Context, id: typing.Optional[int], amount: typing.Optional[int], date: typing.Optional[str]):
-        if (utils.is_admin(ctx, self.bot)):
+        if (utils.is_admin(self.bot, ctx)):
 
             if ("account-for-" in ctx.channel.name):
                 payment = await self.bot.db.get_payment_by_id(id)
@@ -105,8 +105,9 @@ class Administration(commands.Cog):
         if (self.__inadminpanel(ctx)):
             account : OWAccount = await self.bot.db.get_account(id)
 
-            if (account.channelid is None or account is None):
+            if (account is None or account.channelid is None):
                 ctx.send("Account not yet associated with a user or channel")
+                return
 
             channel = discord.utils.get(ctx.guild.channels, id=int(account.channelid))
             await ctx.send(f"Channel associated with account id {id}: {channel.mention}")
