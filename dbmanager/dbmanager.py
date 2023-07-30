@@ -187,7 +187,11 @@ class DBManager():
         session = async_sessionmaker(self.engine, expire_on_commit=False)
 
         async with session() as session:
-            query = select(Payment).where(Payment.id==id)
+            if (id < 1000):
+                query = select(Payment).where(Payment.id==id)
+            else:
+                query = select(Payment).where(Payment.channelid==str(id))
+            
             result = await session.execute(query)
 
             payment = result.scalars().one()

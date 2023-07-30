@@ -28,11 +28,33 @@ Security Question: {account.security_q}
 Answer: {account.q_ans}"""
     
     @classmethod
-    def get_channel_member(channel: discord.TextChannel):
+    def get_channel_member(self, channel: discord.TextChannel):
+        member_role : discord.Role = discord.utils.get(channel.guild.roles, name="Trustees")
+
         for member in channel.members:
-            if (member != channel.guild.me and member != channel.guild.owner):
+            if (member_role in member.roles):
                 return member
-            
+
+    @classmethod
+    def stock_msg_content(self, accounts_dict: dict):
+        return f"""**Current Stock**
+Available Accounts: {accounts_dict["total"]}
+
+**Accounts needed:**
+50 Wins: {accounts_dict["0"]}
+
+One role: {accounts_dict["1"]}
+
+Two role: {accounts_dict["2"]}
+
+Three role: {accounts_dict["3"]}
+_ _
+"""        
+    
     @classmethod
     def is_admin(self, bot, ctx: commands.Context):
         return ctx.author == ctx.guild.owner or  bot.manager_role in ctx.author.roles
+    
+    @classmethod
+    def in_ticket(self, ctx: commands.Context):
+        return "account-for" in ctx.channel.name

@@ -1,8 +1,5 @@
 import discord
-import typing
-import os
-
-import asyncio
+import messages
 
 from discord.ext import commands
 
@@ -10,27 +7,15 @@ from views import views
 from utils import utils
 
 from dbmanager.dbmanager import DBManager
-from dbmanager.models import OWAccount
-
-from dotenv import load_dotenv
-
-load_dotenv()
-
-TOKEN = os.getenv("TOKEN")
-DB_USER = os.getenv("DB_USER")
-DB_PASS = os.getenv("DB_PASS")
-DB_HOST = os.getenv("DB_HOST")
-DB_NAME = os.getenv("DB_NAME")
-GUILD_ID = os.getenv("SERVER_ID")
-
-discord.utils.setup_logging()
 
 class AccountManager(commands.Bot):
 
-    def __init__(self):
+    def __init__(self, db_user, db_pass, db_host, db_name, guild_id):
         super().__init__(command_prefix="!", intents=discord.Intents.all())
 
-        self.db = DBManager(DB_USER, DB_PASS, DB_HOST, DB_NAME)
+        self.db = DBManager(db_user, db_pass, db_host, db_name)
+
+        self.guild_id = guild_id
 
         self.request_channel : discord.TextChannel = None
         self.admin_panel : discord.TextChannel = None
@@ -56,9 +41,9 @@ class AccountManager(commands.Bot):
 
         super().add_view(views.TicketStarterView(self.db, self))
         super().add_view(views.TicketDone(self.db))
-        super().add_view(views.PaymentConfirmation(self.db))
+        super().add_view(views.PaymentConfirmation(self.db, self))
 
-        self.main_guild = super().get_guild(int(GUILD_ID))
+        self.main_guild = super().get_guild(int(self.guild_id))
         if (self.main_guild is not None): 
             self.admin_panel = discord.utils.get(self.main_guild.text_channels, name="admin-panel")
             self.request_channel = discord.utils.get(self.main_guild.text_channels, name="account-request")
@@ -110,7 +95,7 @@ class AccountManager(commands.Bot):
         if self.admin_panel is not None:
             print("Server already has channels, not creating new ones")
         else:
-            ticketEmbed = discord.Embed(title="Account request", description="If you want an account to start playing please click the button below to start a ticket. If you have been already given an account, a new one cannot be given")
+            ticketEmbed = discord.Embed(title="Account request", description=messages.MESSAGES["REQUEST_CHANNEL"])
 
             adminCat = await guild.create_category(name="admin", overwrites=adminPanelPermissions)
             stockCat = await guild.create_category(name="stock")
@@ -119,42 +104,25 @@ class AccountManager(commands.Bot):
             self.request_channel = await guild.create_text_channel(name="account-request", category=ticketCat, overwrites=ticketChannelPermission)
             self.stock_channel = await guild.create_text_channel(name="stock-status", category=stockCat, overwrites=ticketChannelPermission)
 
-            self.stock_update = await self.stock_channel.send(
-                content=f"""**Current Stock**
-Available Accounts: {self.accounts["total"]}
+            self.stock_update = await self.stock_channel.send(content=utils.stock_msg_content(self.accounts))
 
-**Accounts needed:**
-50 Wins: {self.accounts["0"]}
-
-One role: {self.accounts["1"]}
-
-Two role: {self.accounts["2"]}
-
-Three role: {self.accounts["3"]}
-_ _
-""")          
+            await self.update_stock(True)          
             await self.request_channel.send(embed=ticketEmbed, view=views.TicketStarterView(self.db, self))
             #Create the administrator panel
             self.admin_panel = await guild.create_text_channel(name="admin-panel", overwrites=adminPanelPermissions, category=adminCat) 
 
+    async def on_guild_remove(self, guild: discord.Guild):
+        self.admin_panel = None
+        self.request_channel = None
+        self.stock_channel = None
+        self.stock_update = None
+    
     async def update_stock(self, pull: bool = False):
 
         if pull:
             self.accounts["total"], self.accounts["0"], self.accounts["1"], self.accounts["2"], self.accounts["3"] = await self.db.get_supply_size()
 
-        await self.stock_update.edit(content=f"""**Current Stock**
-Available Accounts: {self.accounts["total"]}
-
-**Accounts needed:**
-50 Wins: {self.accounts["0"]}
-
-One role: {self.accounts["1"]}
-
-Two role: {self.accounts["2"]}
-
-Three role: {self.accounts["3"]}
-_ _
-""")
+        await self.stock_update.edit(content=utils.stock_msg_content(self.accounts))
 
 '''
 
@@ -169,17 +137,5 @@ async def close(ctx: commands.Context):
         await bot.close()
 
 '''
-AccountBot = AccountManager()
 
-async def main():
-    async with AccountBot:
-        await AccountBot.load_extension("cogs.administration")
-        await AccountBot.load_extension("cogs.dev")
-        await AccountBot.start(TOKEN)
-
-if (__name__ == "__main__"):
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("Closing")
 

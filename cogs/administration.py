@@ -1,5 +1,6 @@
 import discord
 import typing
+import messages
 
 from discord.ext import commands
 
@@ -25,7 +26,7 @@ class Administration(commands.Cog):
             else:
                 FinishedAccountEmbed.add_field(name="", value="There is no any finished accounts currently", inline=False)
 
-            FinishedAccountEmbed.add_field(name="More help..", value="To export full info, use the command !export [email]", inline=False)
+            FinishedAccountEmbed.add_field(name="More help..", value="To export full info, use the command !export [id]", inline=False)
 
             await ctx.send(embed=FinishedAccountEmbed)
     
@@ -54,7 +55,7 @@ class Administration(commands.Cog):
     async def schedule(self, ctx: commands.Context, id: typing.Optional[int], amount: typing.Optional[int], date: typing.Optional[str]):
         if (utils.is_admin(self.bot, ctx)):
 
-            if ("account-for-" in ctx.channel.name):
+            if (utils.in_ticket(ctx)):
                 payment = await self.bot.db.get_payment_by_id(id)
 
                 await ctx.message.delete()
@@ -100,11 +101,12 @@ class Administration(commands.Cog):
                 
 
     @commands.command()
-    async def paid(self, ctx: commands.Context, id: int):
+    async def paid(self, ctx: commands.Context, id: typing.Optional[int]):
+        AccountDoneEmbed = discord.Embed(title="Payment placed", description=messages.MESSAGES["PLACED_PAYMENT"])
+        AccountDoneEmbed.add_field(name="Payed by", value=ctx.author.mention)
+
         if (self.__inadminpanel(ctx)):
             currentPayment : Payment = await self.bot.db.set_payment_done(id)
-
-            AccountDoneEmbed = discord.Embed(title="Payment placed", description=f"Your scheduled paymen has been placed, please confirm your payment after receiving using the button below. You will be asked to write the amount received")
             
             payment = await self.bot.db.get_payment_by_id(id)
 
@@ -112,8 +114,17 @@ class Administration(commands.Cog):
             
             member: discord.Member = utils.get_channel_member(channel)
 
-            await channel.send(f"{member.mention}\n", embed=AccountDoneEmbed, view=views.PaymentConfirmation(self.bot.db))
+            await channel.send(f"{member.mention}\n", embed=AccountDoneEmbed, view=views.PaymentConfirmation(self.bot.db, self.bot))
             await ctx.send(f"Payment for {currentPayment.user} is made, waiting for user's confirmation")
+        
+        elif (utils.in_ticket(ctx)):
+            currentPayment: Payment = await self.bot.db.set_payment_done(ctx.channel.id)
+
+            member: discord.Member = utils.get_channel_member(ctx.channel)
+
+            await ctx.message.delete()
+            await ctx.send(f"{member.mention}\n", embed=AccountDoneEmbed, view=views.PaymentConfirmation(self.bot.db, self.bot))
+            await self.bot.admin_panel.send(f"{ctx.author.mention}\nPayment for {currentPayment.user} is made, waiting for user's confirmation")
 
     @commands.command()
     async def find(self, ctx: commands.Context, id: int):

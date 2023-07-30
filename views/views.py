@@ -1,4 +1,7 @@
 import discord
+import asyncio
+
+import messages
 
 from dbmanager.dbmanager import DBManager
 from dbmanager.models import Payment, OWAccount
@@ -32,25 +35,33 @@ class ConfirmationForm(discord.ui.Modal):
 
     amount = discord.ui.TextInput(label="Amount Received" , style=discord.TextStyle.short, required=True, max_length=6)
 
-    def __init__(self, dbManager: DBManager) -> None:
+    def __init__(self, dbManager: DBManager, bot) -> None:
         super().__init__(title="Please write the amount received")
         self.dbManager = dbManager
+        self.bot = bot
 
     async def on_submit(self, interaction: discord.Interaction):
         admin_panel = discord.utils.get(interaction.guild.channels, name="admin-panel")
 
         payment = await self.dbManager.get_payment_by_channelid(str(interaction.channel_id))
 
+        DMEmbed = discord.Embed(title="Ticket Confirmation")
+        DMEmbed.add_field(name="Account Identifier", value=interaction.channel.id)
+        DMEmbed.add_field(name="Info", value="Ticket was closed because payment confirmed")
+
         if (int(self.amount.value) == payment.amount):
             if (not payment.confirmed):    
                 await self.dbManager.set_payment_confirmed(payment.id)
-                await admin_panel.send(f"{interaction.guild.owner.mention}\n{interaction.user.name}'s payment was confirmed with the amount {payment.amount}")
-                await interaction.response.send_message("Payment was confirmed succesfully")
+                await admin_panel.send(f"{self.bot.manager_role.mention}\n{interaction.user.name}'s payment was confirmed with the amount {payment.amount}")
+                await interaction.response.send_message("Payment was confirmed succesfully, closing ticket")
+                await asyncio.sleep(3)
+                await interaction.user.send(embed=DMEmbed)
+                await interaction.channel.delete()
             elif (payment.confirmed):
                 await interaction.response.send_message("Payment has already been confirmed")
 
         else:
-            await interaction.response.send_message("The amount given is not the same as the one sent, tha payment was not confirmed, please the check the amount received again or wait for the payment to be received if not yet.")
+            await interaction.response.send_message(messages.MESSAGES["PAYMENT"])
 
 class TicketDone(discord.ui.View):
 
@@ -61,19 +72,26 @@ class TicketDone(discord.ui.View):
 
     @discord.ui.button(label="Done", style=discord.ButtonStyle.blurple, custom_id="done_button")
     async def accountDone(self, interaction: discord.Interaction, button: discord.ui.Button):
+        last_message = await interaction.channel.fetch_message(interaction.channel.last_message_id)
+
         if (interaction.channel.name == f"account-for-{interaction.user.name+interaction.user.discriminator}"):
-            await interaction.response.send_modal(DoneForm(self.dbManager))
+            if (last_message.attachments):
+                await interaction.response.send_modal(DoneForm(self.dbManager))
+                print(last_message.attachments[0].content_type)
+            else:
+                await interaction.response.send_message("Please upload all the screenshots first", ephemeral=True)
 
 class PaymentConfirmation(discord.ui.View):
-    def __init__(self, dbManager: DBManager) -> None:
+    def __init__(self, dbManager: DBManager, bot) -> None:
         super().__init__(timeout=None)
 
         self.dbManager = dbManager
+        self.bot = bot
 
     @discord.ui.button(label="Confirm", style=discord.ButtonStyle.blurple, custom_id="confirm_payment")
     async def accountDone(self, interaction: discord.Interaction, button: discord.ui.Button):
         if (interaction.channel.name == f"account-for-{interaction.user.name+interaction.user.discriminator}"):
-            await interaction.response.send_modal(ConfirmationForm(self.dbManager))
+            await interaction.response.send_modal(ConfirmationForm(self.dbManager, self.bot))
 
 
 class TicketStarterView(discord.ui.View):
@@ -92,24 +110,24 @@ class TicketStarterView(discord.ui.View):
         max_values = 1, # the maximum number of values that can be selected by the users
         options = [
             discord.SelectOption(
-                label="Fresh Account",
+                label="50 Wins",
                 value="0",
-                description="Fresh account to unlock competitive"
+                description="Get this account to 50 Wins QP"
             ),
             discord.SelectOption(
                 label="1 Role",
                 value="1",
-                description="Account for 1 role derank"
+                description="Get one role to bronze on this account"
             ),
             discord.SelectOption(
                 label="2 Role",
                 value="2",
-                description="Account for 1 role derank"
+                description="Get two roles to bronze on this account"
             ),
             discord.SelectOption(
                 label="3 Role",
                 value="3",
-                description="Account for 1 role derank"
+                description="Get three roles to bronze on this account"
             )
         ]
     )
@@ -123,8 +141,8 @@ class TicketStarterView(discord.ui.View):
 
         user_str = str(interaction.user)
 
-        if (self.bot.trusted_role not in interaction.user.roles):
-            await interaction.response.send_message("You are not yet trusted, please DM the mods to get the roles and start playing :)", ephemeral=True)
+        if (self.bot.trusted_role not in interaction.user.roles and self.bot.manager_role not in interaction.user.roles):
+            await interaction.response.send_message(messages.MESSAGES["TRUSTED"], ephemeral=True)
             return
     
         #Check if the user has chosen an answer
@@ -136,7 +154,7 @@ class TicketStarterView(discord.ui.View):
         userCheck = await self.dbManager.check_user(interaction.user.name+interaction.user.discriminator)
 
         if (not userCheck):
-            await interaction.response.send_message("You already have an account requested, please finish it first", ephemeral=True)
+            await interaction.response.send_message(messages.MESSAGES["REQUESTED"], ephemeral=True)
             self.answers.pop(user_str)
             return
         
@@ -157,15 +175,23 @@ class TicketStarterView(discord.ui.View):
 
 
         if retrieved_acc is None:
-            await interaction.response.send_message("There is no any accounts available currently, please try again soon", ephemeral=True)
+            await interaction.response.send_message(messages.MESSAGES["NO_ACCOUNTS"], ephemeral=True)
             self.answers.pop(user_str)
             return
         
         await interaction.response.defer()
 
+        goal: str = None
+
+        if (retrieved_acc.type == 0):
+            goal = "Get this account to 50 Wins QP"
+        else:
+            goal = f"Derank {retrieved_acc.type} Role/s on this account to bronze"
+
         #TODO: Add email password entry and change taken to true
         AccountReturnEmbed = discord.Embed(title="Account Information", description=f"E-mail: {retrieved_acc.email}\nBattle.net Password: {retrieved_acc.password}")
-        AccountReturnEmbed.add_field(name="More Help..", value="After finishing the account click the Done button. You will be asked to write a description for what you did and your cash payment number, then the owner will check the account and schedule a payment\nIf any help needed you can write a message, the owner can see it", inline=False)
+        AccountReturnEmbed.add_field(name="What you should do", value=goal, inline=False)
+        AccountReturnEmbed.add_field(name="More Help..", value=messages.MESSAGES["TICKET_HELP"], inline=False)
 
         ticket = await guild.create_text_channel(name=f"account-for-{interaction.user.name+interaction.user.discriminator}", overwrites=overwrites, reason=f"Account request for {interaction.user}", category=guild.get_channel(interaction.channel.category_id))
         await ticket.send(embed=AccountReturnEmbed, view=TicketDone(self.dbManager))
