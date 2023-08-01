@@ -3,6 +3,8 @@ import asyncio
 
 import messages
 
+from utils import utils
+
 from dbmanager.dbmanager import DBManager
 from dbmanager.models import Payment, OWAccount
 
@@ -55,8 +57,8 @@ class ConfirmationForm(discord.ui.Modal):
                 await admin_panel.send(f"{self.bot.manager_role.mention}\n{interaction.user.name}'s payment was confirmed with the amount {payment.amount}")
                 await interaction.response.send_message("Payment was confirmed succesfully, closing ticket")
                 await asyncio.sleep(3)
+                await interaction.channel.set_permissions(utils.get_channel_member(interaction.channel), view_channel=False)
                 await interaction.user.send(embed=DMEmbed)
-                await interaction.channel.delete()
             elif (payment.confirmed):
                 await interaction.response.send_message("Payment has already been confirmed")
 
@@ -172,7 +174,6 @@ class TicketStarterView(discord.ui.View):
 
         account_type = int(self.answers[user_str])
         retrieved_acc : OWAccount = await self.dbManager.get_new_account(interaction.user.name+interaction.user.discriminator, account_type)
-
 
         if retrieved_acc is None:
             await interaction.response.send_message(messages.MESSAGES["NO_ACCOUNTS"], ephemeral=True)

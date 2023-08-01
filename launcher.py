@@ -25,6 +25,8 @@ AccountBot = AccountManager(
     GUILD_ID
 )
 
+AccountBot.remove_command("help")
+
 async def main():
     async with AccountBot:
         await AccountBot.load_extension("cogs.administration")
