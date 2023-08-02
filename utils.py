@@ -70,3 +70,7 @@ _ _
     @classmethod
     def in_ticket(self, ctx: commands.Context):
         return "account-for" in ctx.channel.name
+    
+    @classmethod
+    def check_ticket(self, interaction: discord.Interaction):
+        return f"{interaction.user.name+interaction.user.discriminator}" in interaction.channel.name

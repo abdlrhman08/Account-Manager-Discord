@@ -76,7 +76,7 @@ class TicketDone(discord.ui.View):
     async def accountDone(self, interaction: discord.Interaction, button: discord.ui.Button):
         last_message = await interaction.channel.fetch_message(interaction.channel.last_message_id)
 
-        if (interaction.channel.name == f"account-for-{interaction.user.name+interaction.user.discriminator}"):
+        if (utils.check_ticket(interaction)):
             if (last_message.attachments):
                 await interaction.response.send_modal(DoneForm(self.dbManager))
                 print(last_message.attachments[0].content_type)
@@ -92,7 +92,7 @@ class PaymentConfirmation(discord.ui.View):
 
     @discord.ui.button(label="Confirm", style=discord.ButtonStyle.blurple, custom_id="confirm_payment")
     async def accountDone(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if (interaction.channel.name == f"account-for-{interaction.user.name+interaction.user.discriminator}"):
+        if (utils.check_ticket(interaction)):
             await interaction.response.send_modal(ConfirmationForm(self.dbManager, self.bot))
 
 
@@ -145,6 +145,7 @@ class TicketStarterView(discord.ui.View):
 
         if (self.bot.trusted_role not in interaction.user.roles and self.bot.manager_role not in interaction.user.roles):
             await interaction.response.send_message(messages.MESSAGES["TRUSTED"], ephemeral=True)
+            self.answers.pop(user_str)
             return
     
         #Check if the user has chosen an answer
@@ -194,7 +195,7 @@ class TicketStarterView(discord.ui.View):
         AccountReturnEmbed.add_field(name="What you should do", value=goal, inline=False)
         AccountReturnEmbed.add_field(name="More Help..", value=messages.MESSAGES["TICKET_HELP"], inline=False)
 
-        ticket = await guild.create_text_channel(name=f"account-for-{interaction.user.name+interaction.user.discriminator}", overwrites=overwrites, reason=f"Account request for {interaction.user}", category=guild.get_channel(interaction.channel.category_id))
+        ticket = await guild.create_text_channel(name=f"account-for-{interaction.user.name+interaction.user.discriminator}-{retrieved_acc.id}", overwrites=overwrites, reason=f"Account request for {interaction.user}", category=guild.get_channel(interaction.channel.category_id))
         await ticket.send(embed=AccountReturnEmbed, view=TicketDone(self.dbManager))
 
         await self.dbManager.set_channel(retrieved_acc.id, str(ticket.id))
@@ -203,5 +204,7 @@ class TicketStarterView(discord.ui.View):
         
         self.bot.accounts["total"] -= 1
         self.bot.accounts[self.answers[user_str]] -= 1
+
+        self.answers.pop(user_str)
 
         await self.bot.update_stock()
