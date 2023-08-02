@@ -9,6 +9,7 @@ class utils():
     @classmethod
     def export(self, account: OWAccount) -> str:
         type: str
+        name = account.name.split()
 
         if (account.type == 0):
             type = "50 Wins"
@@ -16,16 +17,27 @@ class utils():
             type = account.type + " Role"
 
         return f"""Info for {account.user} given account
+Created: {account.creation_date}
+
 Recovery mail: {account.email}
+Password: {account.password}
+
 Battle Tag: {account.battle_tag}
 Password: {account.password}
+
 Account Type: {type}
+
+Country: Latvia
 Phone: {account.phonenum}
+Birthdate: {account.birthdate}
+
+First Name: {name[0]}
+Last Name: {name[1]}
+
 SafeUM User: {account.safe_um_user}
 SafeUM Pass: {account.safe_um_pass}
-Description: {account.description}
-Security Question: {account.security_q}
-Answer: {account.q_ans}"""
+
+Description: {account.description}"""
     
     @classmethod
     def get_channel_member(self, channel: discord.TextChannel):

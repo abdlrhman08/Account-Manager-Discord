@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlalchemy import select, func
+from sqlalchemy import select, func, update
 
 from dbmanager.models import Base, OWAccount, Payment 
 
@@ -159,29 +159,39 @@ class DBManager():
         session = async_sessionmaker(self.engine, expire_on_commit=False)
 
         async with session() as session:
-            query = select(OWAccount).filter(
-                OWAccount.user == user,
-                OWAccount.finished == False    
-            )
-            result = await session.execute(query)
 
-            account = result.scalars().one()
-            account.finished = True
-            account.description = description
+            query = update(OWAccount).filter(
+                OWAccount.user == user,
+                OWAccount.finished == False
+            ).values(
+                finished = True,
+                description = description
+            )
             
+            await session.execute(query)
             await session.commit()
 
     async def set_channel(self, accountID: int, channelID: str):
         session = async_sessionmaker(self.engine, expire_on_commit=False)
 
         async with session() as session:
+            
+            query = update(OWAccount).filter(
+                OWAccount.id == accountID
+            ).values(
+                channelid = channelID
+            )
+
+            await session.execute(query)
+            await session.commit()
+
+
+            '''
             query = select(OWAccount).where(OWAccount.id==accountID)
             result = await session.execute(query)
 
             account = result.scalars().one()
-            account.channelid = channelID
-
-            await session.commit()
+            account.channelid = channelID '''
 
     async def set_payment_done(self, id: int):
         session = async_sessionmaker(self.engine, expire_on_commit=False)
@@ -205,26 +215,29 @@ class DBManager():
         session = async_sessionmaker(self.engine, expire_on_commit=False)
 
         async with session() as session:
-            query = select(Payment).where(Payment.id==id)
-            result = await session.execute(query)
+            query = update(Payment).filter(
+                Payment.id == id
+            ).values(
+                confirmed = True
+            )
 
-            payment = result.scalars().one()
-            payment.confirmed = True
-
+            await session.execute(query)
             await session.commit()
 
     async def set_payment_info(self, id: int, date: str, amount: int):
         session = async_sessionmaker(self.engine, expire_on_commit=False)
 
         async with session() as session:
-            query = select(Payment).where(Payment.id==id)
-            result = await session.execute(query)
+            query = update(Payment).filter(
+                Payment.id == id
+            ).values(
+                paymentDate = date,
+                amount = amount
+            )
 
-            payment = result.scalars().one()
-            payment.paymentDate = date
-            payment.amount = amount
-
+            await session.execute(query)
             await session.commit()
+
 
     async def add(self, object):
         session = async_sessionmaker(self.engine, expire_on_commit=False)

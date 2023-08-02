@@ -15,6 +15,8 @@ class OWAccount(Base):
     password: Mapped[str] = mapped_column(String(255), nullable=False)
     user: Mapped[str] = mapped_column(String(255), nullable=True)
 
+    name: Mapped[str] = mapped_column(String(40), nullable=True)
+
     battle_tag: Mapped[str] = mapped_column(String(20), nullable=True)
     
     phonenum: Mapped[str] = mapped_column(String(15), nullable=True) 
@@ -22,10 +24,11 @@ class OWAccount(Base):
     safe_um_user: Mapped[str] = mapped_column(String(30), nullable=True)
     safe_um_pass: Mapped[str] = mapped_column(String(30), nullable=True)
 
-    description: Mapped[str] = mapped_column(String(255), nullable=True)
+    creation_date: Mapped[str] = mapped_column(String(12), nullable=True)
+    birthdate: Mapped[str] = mapped_column(String(12), nullable=True)
 
-    security_q: Mapped[str] = mapped_column(String(255), nullable=True)
-    q_ans: Mapped[str] = mapped_column(String(255), nullable=True)
+
+    description: Mapped[str] = mapped_column(String(255), nullable=True)
 
     channelid: Mapped[str] = mapped_column(String(255), nullable=True)
 
