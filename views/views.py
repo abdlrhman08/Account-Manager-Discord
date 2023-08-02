@@ -142,22 +142,22 @@ class TicketStarterView(discord.ui.View):
         guild = interaction.guild
 
         user_str = str(interaction.user)
+        await interaction.response.defer()
 
         if (self.bot.trusted_role not in interaction.user.roles and self.bot.manager_role not in interaction.user.roles):
-            await interaction.response.send_message(messages.MESSAGES["TRUSTED"], ephemeral=True)
-            self.answers.pop(user_str)
+            await interaction.followup.send(messages.MESSAGES["TRUSTED"], ephemeral=True)
             return
     
         #Check if the user has chosen an answer
         if (user_str not in self.answers.keys()):
-            await interaction.response.send_message("Please select your account type first", ephemeral=True)
+            await interaction.followup.send("Please select your account type first", ephemeral=True)
             return
 
         #Check if the user alreasy has an account
         userCheck = await self.dbManager.check_user(interaction.user.name+interaction.user.discriminator)
 
         if (not userCheck):
-            await interaction.response.send_message(messages.MESSAGES["REQUESTED"], ephemeral=True)
+            await interaction.followup.send(messages.MESSAGES["REQUESTED"], ephemeral=True)
             self.answers.pop(user_str)
             return
         
@@ -177,11 +177,9 @@ class TicketStarterView(discord.ui.View):
         retrieved_acc : OWAccount = await self.dbManager.get_new_account(interaction.user.name+interaction.user.discriminator, account_type)
 
         if retrieved_acc is None:
-            await interaction.response.send_message(messages.MESSAGES["NO_ACCOUNTS"], ephemeral=True)
+            await interaction.followup.send(messages.MESSAGES["NO_ACCOUNTS"], ephemeral=True)
             self.answers.pop(user_str)
             return
-        
-        await interaction.response.defer()
 
         goal: str = None
 
