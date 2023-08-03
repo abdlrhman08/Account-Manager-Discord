@@ -26,6 +26,9 @@ class AccountManager(commands.Bot):
         self.trusted_role : discord.Role = None
         self.manager_role: discord.Role = None
 
+        self.finished_cat: discord.CategoryChannel = None
+        self.paid_cat: discord.CategoryChannel = None
+
         self.accounts = {
             "total": 0,
             "0": 0,
@@ -40,7 +43,7 @@ class AccountManager(commands.Bot):
         await self.db.create_tables()
 
         super().add_view(views.TicketStarterView(self.db, self))
-        super().add_view(views.TicketDone(self.db))
+        super().add_view(views.TicketDone(self.db, self))
         super().add_view(views.PaymentConfirmation(self.db, self))
 
         self.main_guild = super().get_guild(int(self.guild_id))
@@ -48,6 +51,9 @@ class AccountManager(commands.Bot):
             self.admin_panel = discord.utils.get(self.main_guild.text_channels, name="admin-panel")
             self.request_channel = discord.utils.get(self.main_guild.text_channels, name="account-request")
             self.stock_channel = discord.utils.get(self.main_guild.text_channels, name="stock-status")
+
+            self.finished_cat = discord.utils.get(self.main_guild.categories, name="marked-as-finished")
+            self.paid_cat = discord.utils.get(self.main_guild.categories, name="paid-and-closed")
 
             self.stock_update = await self.stock_channel.fetch_message(self.stock_channel.last_message_id)
 
@@ -100,6 +106,9 @@ class AccountManager(commands.Bot):
             adminCat = await guild.create_category(name="admin", overwrites=adminPanelPermissions)
             stockCat = await guild.create_category(name="stock")
             ticketCat = await guild.create_category(name="tickets")
+
+            self.finished_cat = await guild.create_category(name="marked-as-finished", overwrites=adminPanelPermissions)
+            self.paid_cat = await guild.create_category(name="paid-and-closed", overwrites=adminPanelPermissions)
 
             self.request_channel = await guild.create_text_channel(name="account-request", category=ticketCat, overwrites=ticketChannelPermission)
             self.stock_channel = await guild.create_text_channel(name="stock-status", category=stockCat, overwrites=ticketChannelPermission)

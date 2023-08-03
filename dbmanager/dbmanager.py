@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy import select, func, update
 
@@ -96,26 +98,44 @@ class DBManager():
             return result.scalars().one()
 
 
-    async def get_new_account(self, user: str, type: int):
+    async def get_new_account(self, username: str, type: int):
         session = async_sessionmaker(self.engine, expire_on_commit=False)
 
         async with session() as session:
-            query = select(OWAccount).where(
+            query = select(
+                OWAccount.id,
+                OWAccount.type,
+                OWAccount.email,
+                OWAccount.password,
+                OWAccount.battle_tag
+            ).filter(
                 OWAccount.taken==False,
                 OWAccount.type == type
             )
 
             result = await session.execute(query)
 
-            account = result.scalars().first()
+            account_data = result.first()
 
-            if account is not None:                
-                account.user = user
-                account.taken = True
+            if account_data is None:                
+                return None, None, None, None, None
+            
+            id : int = account_data[0]
+            type: int = account_data[1]
+            email: str = account_data[2]
+            password: str = account_data[3]
+            battle_tag: str = account_data[4]
 
+            set_user_query = update(OWAccount).filter(OWAccount.id == id).values(
+                taken = True,
+                user = username
+            )
+            
+            await session.execute(set_user_query)
             await session.commit()
-
-            return account
+            
+            return id, type, email, password, battle_tag
+            
         
     async def get_finished_accounts(self):
         session = async_sessionmaker(self.engine, expire_on_commit=False)
@@ -165,6 +185,7 @@ class DBManager():
                 OWAccount.finished == False
             ).values(
                 finished = True,
+                finished_date = datetime.now().strftime("%x"),
                 description = description
             )
             

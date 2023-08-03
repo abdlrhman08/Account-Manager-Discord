@@ -18,9 +18,10 @@ class utils():
 
         return f"""Info for {account.user} given account
 Created: {account.creation_date}
+Finished: {account.finished_date}
 
 Recovery mail: {account.email}
-Password: {account.password}
+Password: {account.email_password}
 
 Battle Tag: {account.battle_tag}
 Password: {account.password}

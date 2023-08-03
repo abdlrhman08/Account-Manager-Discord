@@ -12,6 +12,7 @@ class OWAccount(Base):
     type: Mapped[int] = mapped_column(nullable=False)
     
     email: Mapped[str] = mapped_column(String(255), primary_key=True, nullable=False)
+    email_password: Mapped[str] = mapped_column(String(40), nullable=False)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
     user: Mapped[str] = mapped_column(String(255), nullable=True)
 
@@ -27,6 +28,7 @@ class OWAccount(Base):
     creation_date: Mapped[str] = mapped_column(String(12), nullable=True)
     birthdate: Mapped[str] = mapped_column(String(12), nullable=True)
 
+    finished_date: Mapped[str] = mapped_column(String(12), nullable=True)
 
     description: Mapped[str] = mapped_column(String(255), nullable=True)
 

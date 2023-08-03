@@ -15,9 +15,10 @@ class DoneForm(discord.ui.Modal):
     paymentNumber = discord.ui.TextInput(label="Cash Payment Number", style=discord.TextStyle.short, required=True, max_length=11)
 
 
-    def __init__(self, dbManager: DBManager) -> None:
+    def __init__(self, dbManager: DBManager, bot) -> None:
         super().__init__(title="Please fill the following")
         self.dbManager = dbManager
+        self.bot = bot
 
     async def on_submit(self, interaction: discord.Interaction):
         #TODO: Update database with cash payment number
@@ -32,6 +33,7 @@ class DoneForm(discord.ui.Modal):
         await self.dbManager.add(payment)
 
         await interaction.response.send_message(f"Account marked as done, Owner will check account and schedule payment, Process ID: {payment.id}") 
+        await interaction.channel.edit(category=self.bot.finished_cat)
 
 class ConfirmationForm(discord.ui.Modal):
 
@@ -67,18 +69,19 @@ class ConfirmationForm(discord.ui.Modal):
 
 class TicketDone(discord.ui.View):
 
-    def __init__(self, dbManager: DBManager) -> None:
+    def __init__(self, dbManager: DBManager, bot) -> None:
         super().__init__(timeout=None)
 
         self.dbManager = dbManager
+        self.bot = bot
 
     @discord.ui.button(label="Done", style=discord.ButtonStyle.blurple, custom_id="done_button")
     async def accountDone(self, interaction: discord.Interaction, button: discord.ui.Button):
-        last_message = await interaction.channel.fetch_message(interaction.channel.last_message_id)
+        last_message = [message async for message in interaction.channel.history(limit=1)][0]
 
         if (utils.check_ticket(interaction)):
             if (last_message.attachments):
-                await interaction.response.send_modal(DoneForm(self.dbManager))
+                await interaction.response.send_modal(DoneForm(self.dbManager, self.bot))
                 print(last_message.attachments[0].content_type)
             else:
                 await interaction.response.send_message("Please upload all the screenshots first", ephemeral=True)
@@ -174,29 +177,29 @@ class TicketStarterView(discord.ui.View):
         }
 
         account_type = int(self.answers[user_str])
-        retrieved_acc : OWAccount = await self.dbManager.get_new_account(interaction.user.name+interaction.user.discriminator, account_type)
+        id, type, email, password, battle_tag = await self.dbManager.get_new_account(interaction.user.name+interaction.user.discriminator, account_type)
 
-        if retrieved_acc is None:
+        if email is None:
             await interaction.followup.send(messages.MESSAGES["NO_ACCOUNTS"], ephemeral=True)
             self.answers.pop(user_str)
             return
 
         goal: str = None
 
-        if (retrieved_acc.type == 0):
+        if (type == 0):
             goal = "Get this account to 50 Wins QP"
         else:
-            goal = f"Derank {retrieved_acc.type} Role/s on this account to bronze"
+            goal = f"Derank {type} Role/s on this account to bronze"
 
         #TODO: Add email password entry and change taken to true
-        AccountReturnEmbed = discord.Embed(title="Account Information", description=f"E-mail: {retrieved_acc.email}\nBattle.net Password: {retrieved_acc.password}")
+        AccountReturnEmbed = discord.Embed(title="Account Information", description=f"E-mail: {email}\nBattle.net Password: {password}\nBattle-tag: {battle_tag}")
         AccountReturnEmbed.add_field(name="What you should do", value=goal, inline=False)
         AccountReturnEmbed.add_field(name="More Help..", value=messages.MESSAGES["TICKET_HELP"], inline=False)
 
-        ticket = await guild.create_text_channel(name=f"account-for-{interaction.user.name+interaction.user.discriminator}-{retrieved_acc.id}", overwrites=overwrites, reason=f"Account request for {interaction.user}", category=guild.get_channel(interaction.channel.category_id))
-        await ticket.send(embed=AccountReturnEmbed, view=TicketDone(self.dbManager))
+        ticket = await guild.create_text_channel(name=f"account-for-{interaction.user.name+interaction.user.discriminator}-{id}", overwrites=overwrites, reason=f"Account request for {interaction.user}", category=guild.get_channel(interaction.channel.category_id))
+        await ticket.send(embed=AccountReturnEmbed, view=TicketDone(self.dbManager, self.bot))
 
-        await self.dbManager.set_channel(retrieved_acc.id, str(ticket.id))
+        await self.dbManager.set_channel(id, str(ticket.id))
         
         await interaction.followup.send(f"Opened ticket at {ticket.mention}", ephemeral=True)
         

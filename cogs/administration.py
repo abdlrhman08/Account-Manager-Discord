@@ -115,6 +115,7 @@ class Administration(commands.Cog):
             member: discord.Member = utils.get_channel_member(channel)
 
             await channel.send(f"{member.mention}\n", embed=AccountDoneEmbed, view=views.PaymentConfirmation(self.bot.db, self.bot))
+            await channel.edit(category=self.bot.paid_cat)
             await ctx.send(f"Payment for {currentPayment.user} is made, waiting for user's confirmation")
         
         elif (utils.in_ticket(ctx)):
@@ -124,6 +125,7 @@ class Administration(commands.Cog):
 
             await ctx.message.delete()
             await ctx.send(f"{member.mention}\n", embed=AccountDoneEmbed, view=views.PaymentConfirmation(self.bot.db, self.bot))
+            await ctx.channel.edit(category=self.bot.paid_cat)
             await self.bot.admin_panel.send(f"{ctx.author.mention}\nPayment for {currentPayment.user} is made, waiting for user's confirmation")
 
     @commands.command()
