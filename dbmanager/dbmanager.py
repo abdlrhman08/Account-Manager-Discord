@@ -185,7 +185,7 @@ class DBManager():
                 OWAccount.finished == False
             ).values(
                 finished = True,
-                finished_date = datetime.now().strftime("%x"),
+                finished_date = datetime.now().strftime("%d/%m/%Y"),
                 description = description
             )
             

@@ -45,6 +45,7 @@ class ConfirmationForm(discord.ui.Modal):
         self.bot = bot
 
     async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer()
         admin_panel = discord.utils.get(interaction.guild.channels, name="admin-panel")
 
         payment = await self.dbManager.get_payment_by_channelid(str(interaction.channel_id))
@@ -57,15 +58,16 @@ class ConfirmationForm(discord.ui.Modal):
             if (not payment.confirmed):    
                 await self.dbManager.set_payment_confirmed(payment.id)
                 await admin_panel.send(f"{self.bot.manager_role.mention}\n{interaction.user.name}'s payment was confirmed with the amount {payment.amount}")
-                await interaction.response.send_message("Payment was confirmed succesfully, closing ticket")
+                await interaction.followup.send("Payment was confirmed succesfully, closing ticket")
                 await asyncio.sleep(3)
                 await interaction.channel.set_permissions(utils.get_channel_member(interaction.channel), view_channel=False)
+                await interaction.channel.edit(category=self.bot.paid_cat)
                 await interaction.user.send(embed=DMEmbed)
             elif (payment.confirmed):
-                await interaction.response.send_message("Payment has already been confirmed")
+                await interaction.followup.send("Payment has already been confirmed")
 
         else:
-            await interaction.response.send_message(messages.MESSAGES["PAYMENT"])
+            await interaction.followup.send(messages.MESSAGES["PAYMENT"])
 
 class TicketDone(discord.ui.View):
 
@@ -79,12 +81,11 @@ class TicketDone(discord.ui.View):
     async def accountDone(self, interaction: discord.Interaction, button: discord.ui.Button):
         last_message = [message async for message in interaction.channel.history(limit=1)][0]
 
-        if (utils.check_ticket(interaction)):
-            if (last_message.attachments):
-                await interaction.response.send_modal(DoneForm(self.dbManager, self.bot))
-                print(last_message.attachments[0].content_type)
-            else:
-                await interaction.response.send_message("Please upload all the screenshots first", ephemeral=True)
+        if (last_message.attachments):
+            await interaction.response.send_modal(DoneForm(self.dbManager, self.bot))
+            print(last_message.attachments[0].content_type)
+        else:
+            await interaction.response.send_message("Please upload all the screenshots first", ephemeral=True)
 
 class PaymentConfirmation(discord.ui.View):
     def __init__(self, dbManager: DBManager, bot) -> None:
@@ -95,8 +96,7 @@ class PaymentConfirmation(discord.ui.View):
 
     @discord.ui.button(label="Confirm", style=discord.ButtonStyle.blurple, custom_id="confirm_payment")
     async def accountDone(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if (utils.check_ticket(interaction)):
-            await interaction.response.send_modal(ConfirmationForm(self.dbManager, self.bot))
+        await interaction.response.send_modal(ConfirmationForm(self.dbManager, self.bot))
 
 
 class TicketStarterView(discord.ui.View):

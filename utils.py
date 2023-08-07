@@ -73,5 +73,5 @@ _ _
         return "account-for" in ctx.channel.name
     
     @classmethod
-    def check_ticket(self, interaction: discord.Interaction):
-        return f"{interaction.user.name+interaction.user.discriminator}" in interaction.channel.name
+    def check_ticket(self, bot, interaction: discord.Interaction):
+        return bot.manager_role not in interaction.user.roles
