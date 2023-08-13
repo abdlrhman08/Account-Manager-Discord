@@ -24,6 +24,8 @@ class DBManager():
             echo=True,
         )
 
+        self.session = async_sessionmaker(self.engine, expire_on_commit=False)
+
     def __delete__(self):
         self.engine.dispose()
 
@@ -31,14 +33,11 @@ class DBManager():
         self.engine.dispose()
 
     async def create_tables(self) -> None:
-
         async with self.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
     async def get_supply_size(self):
-        session = async_sessionmaker(self.engine, expire_on_commit=False)
-
-        async with session() as session:
+        async with self.session() as session:
             #All accounts
 
             fresh =  await session.execute(select(func.count(OWAccount.id)).select_from(OWAccount).filter(
@@ -71,27 +70,21 @@ class DBManager():
             return total, fresh_count, one_role_count, two_role_count, three_role_count
 
     async def get_account(self, id: int) -> OWAccount:
-        session = async_sessionmaker(self.engine, expire_on_commit=False)
-
-        async with session() as session:
+        async with self.session() as session:
             query = select(OWAccount).where(OWAccount.id==id)
             result = await session.execute(query)
 
             return result.scalar()
         
     async def get_accounts(self) -> OWAccount:
-        session = async_sessionmaker(self.engine, expire_on_commit=False)
-
-        async with session() as session:
+        async with self.session() as session:
             query = select(OWAccount)
             result = await session.execute(query)
 
             return result.scalars().all()
         
     async def get_account_by_channel(self, channelID: str):
-        session = async_sessionmaker(self.engine, expire_on_commit=False)
-
-        async with session() as session:
+        async with self.session() as session:
             query = select(OWAccount).where(OWAccount.channelid==channelID)
             result = await session.execute(query)
 
@@ -99,9 +92,7 @@ class DBManager():
 
 
     async def get_new_account(self, username: str, type: int):
-        session = async_sessionmaker(self.engine, expire_on_commit=False)
-
-        async with session() as session:
+        async with self.session() as session:
             query = select(
                 OWAccount.id,
                 OWAccount.type,
@@ -138,36 +129,28 @@ class DBManager():
             
         
     async def get_finished_accounts(self):
-        session = async_sessionmaker(self.engine, expire_on_commit=False)
-
-        async with session() as session:
+        async with self.session() as session:
             query = select(OWAccount).where(OWAccount.finished==True)
             result = await session.execute(query)
 
             return result.scalars().all()
         
     async def get_payments(self):
-        session = async_sessionmaker(self.engine, expire_on_commit=False)
-
-        async with session() as session:
+        async with self.session() as session:
             query = select(Payment)
             result = await session.execute(query)
 
             return result.scalars().all()
         
     async def get_payment_by_channelid(self, channelid: str):
-        session = async_sessionmaker(self.engine, expire_on_commit=False)
-
-        async with session() as session:
+        async with self.session() as session:
             query = select(Payment).where(Payment.channelid == channelid)
             result = await session.execute(query)
 
             return result.scalars().one()
             
     async def get_payment_by_id(self, id: str):
-        session = async_sessionmaker(self.engine, expire_on_commit=False)
-
-        async with session() as session:
+        async with self.session() as session:
             query = select(Payment).where(Payment.id == id)
             result = await session.execute(query)
 
@@ -176,9 +159,7 @@ class DBManager():
     #TODO: Fix of user has multiple accounts
     #DONE
     async def set_as_finished(self, user: str, description: str):
-        session = async_sessionmaker(self.engine, expire_on_commit=False)
-
-        async with session() as session:
+        async with self.session() as session:
 
             query = update(OWAccount).filter(
                 OWAccount.user == user,
@@ -193,9 +174,7 @@ class DBManager():
             await session.commit()
 
     async def set_channel(self, accountID: int, channelID: str):
-        session = async_sessionmaker(self.engine, expire_on_commit=False)
-
-        async with session() as session:
+        async with self.session() as session:
             
             query = update(OWAccount).filter(
                 OWAccount.id == accountID
@@ -215,9 +194,7 @@ class DBManager():
             account.channelid = channelID '''
 
     async def set_payment_done(self, id: int):
-        session = async_sessionmaker(self.engine, expire_on_commit=False)
-
-        async with session() as session:
+        async with self.session() as session:
             if (id < 1000):
                 query = select(Payment).where(Payment.id==id)
             else:
@@ -233,9 +210,7 @@ class DBManager():
             return payment
         
     async def set_payment_confirmed(self, id: int):
-        session = async_sessionmaker(self.engine, expire_on_commit=False)
-
-        async with session() as session:
+        async with self.session() as session:
             query = update(Payment).filter(
                 Payment.id == id
             ).values(
@@ -246,9 +221,7 @@ class DBManager():
             await session.commit()
 
     async def set_payment_info(self, id: int, date: str, amount: int):
-        session = async_sessionmaker(self.engine, expire_on_commit=False)
-
-        async with session() as session:
+        async with self.session() as session:
             query = update(Payment).filter(
                 Payment.id == id
             ).values(
@@ -261,17 +234,13 @@ class DBManager():
 
 
     async def add(self, object):
-        session = async_sessionmaker(self.engine, expire_on_commit=False)
-
-        async with session() as session:
+        async with self.session() as session:
             session.add(object)
             await session.commit()
             await session.refresh(object)
 
     async def check_user(self, username: str):
-        session = async_sessionmaker(self.engine, expire_on_commit=False)
-        
-        async with session() as session:
+        async with self.session() as session:
 
             account_count =  await session.execute(select(func.count(OWAccount.id)).select_from(OWAccount).filter(
                 OWAccount.user == username,
