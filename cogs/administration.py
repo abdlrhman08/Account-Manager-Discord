@@ -22,7 +22,8 @@ class Administration(commands.Cog):
 
             if len(finishedAccounts) != 0:
                 for account in finishedAccounts:
-                    FinishedAccountEmbed.add_field(name="", value=f"ID: {account.id}, E-mail: {account.email}", inline=False)
+                    channel = discord.utils.get(ctx.guild.channels, id=int(account.channelid))
+                    FinishedAccountEmbed.add_field(name="", value=f"ID: {account.id}, E-mail: {account.email}, Channel: {channel.mention}", inline=False)
             else:
                 FinishedAccountEmbed.add_field(name="", value="There is no any finished accounts currently", inline=False)
 
