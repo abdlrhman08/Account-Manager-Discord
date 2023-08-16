@@ -14,7 +14,7 @@ class utils():
         if (account.type == 0):
             type = "50 Wins"
         else:
-            type = account.type + " Role"
+            type = str(account.type) + " Role"
 
         return f"""Info for {account.user} given account
 Created: {account.creation_date}
