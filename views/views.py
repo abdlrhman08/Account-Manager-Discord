@@ -11,7 +11,7 @@ from dbmanager.models import Payment, OWAccount
 
 class DoneForm(discord.ui.Modal):
     
-    description = discord.ui.TextInput(label="Description", style=discord.TextStyle.paragraph, default="Bronze 5 DPS", required=True, max_length=255)
+    description = discord.ui.TextInput(label="Description", style=discord.TextStyle.paragraph, required=True, max_length=255)
     paymentNumber = discord.ui.TextInput(label="Cash Payment Number", style=discord.TextStyle.short, required=True, max_length=11)
 
 
@@ -46,18 +46,19 @@ class ConfirmationForm(discord.ui.Modal):
 
     async def on_submit(self, interaction: discord.Interaction):
         await interaction.response.defer()
-        admin_panel = discord.utils.get(interaction.guild.channels, name="admin-panel")
+        channel_id = str(interaction.channel.id)
 
-        payment = await self.dbManager.get_payment_by_channelid(str(interaction.channel_id))
+        payment = await self.dbManager.get_payment_by_channelid(channel_id)
+        account_id = await self.dbManager.get_account_id_by_channel(channel_id)
 
-        DMEmbed = discord.Embed(title="Ticket Confirmation")
-        DMEmbed.add_field(name="Account Identifier", value=interaction.channel.id)
+        DMEmbed = discord.Embed(title="Ticket Confirmation \U00002705")
+        DMEmbed.add_field(name="Account Identifier", value=account_id)
         DMEmbed.add_field(name="Info", value="Ticket was closed because payment confirmed")
 
         if (int(self.amount.value) == payment.amount):
             if (not payment.confirmed):    
                 await self.dbManager.set_payment_confirmed(payment.id)
-                await admin_panel.send(f"{self.bot.manager_role.mention}\n{interaction.user.name}'s payment was confirmed with the amount {payment.amount}")
+                await self.bot.admin_panel.send(f"{self.bot.manager_role.mention}\n{interaction.user.name}'s payment was confirmed with the amount {payment.amount}")
                 await interaction.followup.send("Payment was confirmed succesfully, closing ticket")
                 await asyncio.sleep(3)
                 await interaction.channel.set_permissions(utils.get_channel_member(interaction.channel), view_channel=False)

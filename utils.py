@@ -21,10 +21,10 @@ Created: {account.creation_date}
 Finished: {account.finished_date}
 
 Recovery mail: {account.email}
-Password: {account.email_password}
+Email Password: {account.email_password}
 
 Battle Tag: {account.battle_tag}
-Password: {account.password}
+Battle.net Password: {account.password}
 
 Account Type: {type}
 

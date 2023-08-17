@@ -89,6 +89,18 @@ class DBManager():
             result = await session.execute(query)
 
             return result.scalars().one()
+        
+    async def get_account_id_by_channel(self, channelID: str):
+        async with self.session() as session:
+            query = select(
+                OWAccount.id
+            ).filter(
+                OWAccount.channelid == channelID
+            )
+
+            result = await session.execute(query)
+
+            return result.one()[0]
 
 
     async def get_new_account(self, username: str, type: int):
