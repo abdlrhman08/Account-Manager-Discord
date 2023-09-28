@@ -29,12 +29,23 @@ class AccountManager(commands.Bot):
         self.finished_cat: discord.CategoryChannel = None
         self.paid_cat: discord.CategoryChannel = None
 
+        self.auth_handlers = {}
         self.accounts = {
             "total": 0,
-            "0": 0,
-            "1": 0,
-            "2": 0,
-            "3": 0
+            "0Total": 0,
+            "1Total": 0,
+            "2Total": 0,
+            "1": 0,     #Sojourn     
+            "2": 0,     #kiriko
+            "3": 0,     #LW
+            "4": 0,     #JQ
+            "5": 0,     #Ramattra
+            "11": 0,    #Tank
+            "12": 0,    #DPS
+            "13": 0,    #Support
+            "21": 0,    #Dps + Support
+            "22": 0,    #Tank + Dps
+            "30": 0
         }
 
     async def on_ready(self):
@@ -61,9 +72,12 @@ class AccountManager(commands.Bot):
             self.manager_role = discord.utils.get(self.main_guild.roles, name="Manager")
 
             #Update stock on start
-            self.accounts["total"], self.accounts["0"], self.accounts["1"], self.accounts["2"], self.accounts["3"] = await self.db.get_supply_size()
-            await self.update_stock()
+            #self.accounts["total"], self.accounts["0"], self.accounts["1"], self.accounts["2"], self.accounts["3"] = await self.db.get_supply_size()
+            #await self.update_stock()
             
+            await self.update_stock(True)
+            print(self.accounts)
+
         print("Bot is connected and online")
         
 
@@ -129,7 +143,7 @@ class AccountManager(commands.Bot):
     async def update_stock(self, pull: bool = False):
 
         if pull:
-            self.accounts["total"], self.accounts["0"], self.accounts["1"], self.accounts["2"], self.accounts["3"] = await self.db.get_supply_size()
+            await self.db.get_supply_size(self.accounts)
 
         await self.stock_update.edit(content=utils.stock_msg_content(self.accounts))
 

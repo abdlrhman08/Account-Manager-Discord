@@ -54,13 +54,23 @@ Description: {account.description}"""
 Available Accounts: {accounts_dict["total"]}
 
 **Accounts needed:**
-50 Wins: {accounts_dict["0"]}
+**50 Wins:** {accounts_dict["0Total"]}
+    Sojourn: {accounts_dict["1"]}
+    Kiriko: {accounts_dict["2"]}
+    Life Weaver: {accounts_dict["3"]}
+    Junker Queen: {accounts_dict["4"]}
+    Ramattra: {accounts_dict["5"]}
 
-One role: {accounts_dict["1"]}
+**One role:** {accounts_dict["1Total"]}
+    Tank: {accounts_dict["11"]}
+    Dps: {accounts_dict["12"]}
+    Support: {accounts_dict["13"]}
 
-Two role: {accounts_dict["2"]}
+**Two role:** {accounts_dict["2Total"]}
+    Dps and Support: {accounts_dict["21"]}
+    Tank and Dps: {accounts_dict["22"]}
 
-Three role: {accounts_dict["3"]}
+***Three role:*** {accounts_dict["30"]}
 _ _
 """        
     
@@ -75,3 +85,28 @@ _ _
     @classmethod
     def check_ticket(self, bot, interaction: discord.Interaction):
         return bot.manager_role not in interaction.user.roles
+    
+    @classmethod
+    def populate_options(self, stock: dict, select: discord.ui.Select, main_type: int):
+        labels = ["Sojourn", "Kiriko", "Life Weaver", "Junker Queen", "Ramattra", "Tank", "DPS", "Support", "DPS + Support", "Tank + DPS"]
+        
+        if (main_type == 0):
+            for i in range(5):
+                dict_key = str(i + 1)
+                if (stock[dict_key] > 0):
+                    select.add_option(label=labels[i], value=str(i))
+
+
+        elif (main_type == 1):
+            for i in range(11, 14):
+                dict_key = str(i)
+                if (stock[dict_key] > 0):
+                    select.add_option(label=labels[i - 6], value=str(i - 10))
+
+        elif (main_type == 2):
+            for i in range(21, 23):
+                dict_key = str(i)
+                if (stock[dict_key] > 0):
+                    select.add_option(label=labels[i - 13], value=str(i - 20))
+
+

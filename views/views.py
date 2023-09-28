@@ -6,34 +6,45 @@ import messages
 from utils import utils
 
 from dbmanager.dbmanager import DBManager
-from dbmanager.models import Payment, OWAccount
+from dbmanager.models import Payment
 
 
 class DoneForm(discord.ui.Modal):
     
     description = discord.ui.TextInput(label="Description", style=discord.TextStyle.paragraph, required=True, max_length=255)
     paymentNumber = discord.ui.TextInput(label="Cash Payment Number", style=discord.TextStyle.short, required=True, max_length=11)
+    paymentNumberConfirmation = discord.ui.TextInput(label="Cash Payment Number", style=discord.TextStyle.short, required=True, max_length=11)
 
 
-    def __init__(self, dbManager: DBManager, bot) -> None:
+    def __init__(self, dbManager: DBManager, type: int, bot) -> None:
         super().__init__(title="Please fill the following")
         self.dbManager = dbManager
         self.bot = bot
 
+        if (type < 10):
+            self.remove_item(self.description)
+
     async def on_submit(self, interaction: discord.Interaction):
-        #TODO: Update database with cash payment number
+        await interaction.response.defer()
 
         if (not self.paymentNumber.value.isdigit()):
-            await interaction.response.send_message("Wrong phone number given please try again")
-            return
+            raise ValueError("Invalid input type")
+        
+        if (self.paymentNumber.value != self.paymentNumberConfirmation.value):
+            raise ValueError("The payment numbers don't match, please try again")    
 
         await self.dbManager.set_as_finished(interaction.user.name+interaction.user.discriminator, self.description.value)
 
         payment = Payment(user=interaction.user.name+interaction.user.discriminator, paymentNum=self.paymentNumber.value, channelid=str(interaction.channel_id))
         await self.dbManager.add(payment)
 
-        await interaction.response.send_message(f"Account marked as done, Owner will check account and schedule payment, Process ID: {payment.id}") 
+        await interaction.followup.send(f"Account marked as done, Owner will check account and schedule payment, Process ID: {payment.id}") 
         await interaction.channel.edit(category=self.bot.finished_cat)
+        self.stop()
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception):
+        if (isinstance(error, ValueError)):
+            await interaction.response.send_message(error, ephemeral=True)
 
 class ConfirmationForm(discord.ui.Modal):
 
@@ -55,20 +66,25 @@ class ConfirmationForm(discord.ui.Modal):
         DMEmbed.add_field(name="Account Identifier", value=account_id)
         DMEmbed.add_field(name="Info", value="Ticket was closed because payment confirmed")
 
-        if (int(self.amount.value) == payment.amount):
-            if (not payment.confirmed):    
-                await self.dbManager.set_payment_confirmed(payment.id)
-                await self.bot.admin_panel.send(f"{self.bot.manager_role.mention}\n{interaction.user.name}'s payment was confirmed with the amount {payment.amount}")
-                await interaction.followup.send("Payment was confirmed succesfully, closing ticket")
-                await asyncio.sleep(3)
-                await interaction.channel.set_permissions(utils.get_channel_member(interaction.channel), view_channel=False)
-                await interaction.channel.edit(category=self.bot.paid_cat)
-                await interaction.user.send(embed=DMEmbed)
-            elif (payment.confirmed):
-                await interaction.followup.send("Payment has already been confirmed")
+        if (not self.amount.value.isdigit()):
+            await interaction.followup.send("Invalid input given, please try again", ephemeral=True)
+            return
 
-        else:
+        if (int(self.amount.value) != payment.amount):
             await interaction.followup.send(messages.MESSAGES["PAYMENT"])
+            return
+        
+        if (not payment.confirmed):    
+            await self.dbManager.set_payment_confirmed(payment.id)
+            await self.bot.admin_panel.send(f"{self.bot.manager_role.mention}\n{interaction.user.name}'s payment was confirmed with the amount {payment.amount}")
+            await interaction.followup.send("Payment was confirmed succesfully, closing ticket")
+            await asyncio.sleep(3)
+            await interaction.channel.set_permissions(utils.get_channel_member(interaction.channel), view_channel=False)
+            await interaction.channel.edit(category=self.bot.paid_cat)
+            await interaction.user.send(embed=DMEmbed)
+        elif (payment.confirmed):
+            await interaction.followup.send("Payment has already been confirmed")
+
 
 class TicketDone(discord.ui.View):
 
@@ -81,13 +97,25 @@ class TicketDone(discord.ui.View):
     @discord.ui.button(label="Done", style=discord.ButtonStyle.blurple, custom_id="done_button")
     async def accountDone(self, interaction: discord.Interaction, button: discord.ui.Button):
         last_message = [message async for message in interaction.channel.history(limit=1)][0]
-
-        if (last_message.attachments):
-            await interaction.response.send_modal(DoneForm(self.dbManager, self.bot))
-            print(last_message.attachments[0].content_type)
-        else:
+    
+        if (not last_message.attachments):
             await interaction.response.send_message("Please upload all the screenshots first", ephemeral=True)
+            return
+        
+        type: int
+        try:
+            type = await self.dbManager.get_account_type_by_channel(str(interaction.channel.id))
+        except:
+            await interaction.response.send_message("Experienced connectivity issues, Please try again now", ephemeral=True)
+        else:
+            Form = DoneForm(self.dbManager, type, self.bot)
+            await interaction.response.send_modal(Form)
+            await Form.wait()
 
+            button.disabled = True
+
+            await interaction.edit_original_response(view=self)
+            
 class PaymentConfirmation(discord.ui.View):
     def __init__(self, dbManager: DBManager, bot) -> None:
         super().__init__(timeout=None)
@@ -99,6 +127,71 @@ class PaymentConfirmation(discord.ui.View):
     async def accountDone(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(ConfirmationForm(self.dbManager, self.bot))
 
+
+'''Sub-type selector view'''
+class SubtypeSelectorView(discord.ui.View):
+    def __init__(self, main_type: int, dbManager: DBManager, bot) -> None:
+        super().__init__()
+        self.dbManager = dbManager
+        self.bot = bot
+
+        self.account_type = main_type * 10
+
+        utils.populate_options(bot.accounts, self.children[0], main_type)
+
+        if (main_type == 3):
+            self.remove_item(self.children[0])
+    
+    @discord.ui.select(
+        custom_id="subtype_select",
+        placeholder = "Choose a account type",
+        min_values = 1, # the minimum number of values that must be selected by the users
+        max_values = 1, # the maximum number of values that can be selected by the users
+    )
+    async def select_callback(self, interaction: discord.Interaction, select: discord.ui.Select): # the function called when the user is done selecting options
+        self.account_type += int(select.values[0])
+
+        await interaction.response.defer()
+
+    @discord.ui.button(label="Confirm", style=discord.ButtonStyle.blurple, custom_id="ticket_button")
+    async def initTicket(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        
+        if (not (await self.dbManager.check_availability(self.account_type, True))):
+            await interaction.followup.send(messages.MESSAGES["NO_ACCOUNTS"], ephemeral=True)
+            self.stop()
+            return
+        
+                #TODO: Put overwrites in their own place
+        overwrites = {
+            interaction.guild.default_role: discord.PermissionOverwrite(view_channel=False, send_messages=False),
+            interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True),
+            interaction.guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True),
+
+            #TODO: add owner permision and role permission
+            interaction.guild.owner: discord.PermissionOverwrite(view_channel=True, send_messages=True),
+            self.bot.manager_role: discord.PermissionOverwrite(view_channel=True, send_messages=True),
+            
+        }
+
+        id, type, email, password, battle_tag = await self.dbManager.get_new_account(interaction.user.name+interaction.user.discriminator, self.account_type)
+
+        if (type < 10):
+            goal = "Get this account to 50 Wins QP"
+        else:
+            goal = f"Derank {int(type / 10)} Role/s on this account to bronze"
+
+        #TODO: Add email password entry and change taken to true
+        AccountReturnEmbed = discord.Embed(title="Account Information", description=f"E-mail: {email}\nBattle.net Password: {password}\nBattle-tag: {battle_tag}")
+        AccountReturnEmbed.add_field(name="What you should do", value=goal, inline=False)
+        AccountReturnEmbed.add_field(name="More Help..", value=messages.MESSAGES["TICKET_HELP"], inline=False)
+
+        ticket = await interaction.guild.create_text_channel(name=f"account-for-{interaction.user.name+interaction.user.discriminator}-{id}", overwrites=overwrites, reason=f"Account request for {interaction.user}", category=interaction.guild.get_channel(interaction.channel.category_id))
+        await ticket.send(embed=AccountReturnEmbed, view=TicketDone(self.dbManager, self.bot))
+
+        await self.dbManager.set_channel(id, str(ticket.id))
+        await interaction.edit_original_response(content=f"Opened ticket at {ticket.mention}", view=None)
+        self.stop()
 
 class TicketStarterView(discord.ui.View):
     answers: dict = dict()
@@ -138,15 +231,42 @@ class TicketStarterView(discord.ui.View):
         ]
     )
     async def select_callback(self, interaction: discord.Interaction, select: discord.ui.Select): # the function called when the user is done selecting options
-        self.answers[str(interaction.user)] = select.values[0]
         await interaction.response.defer()
+        msg = "Please select subtype: "
         
+        if (self.bot.trusted_role not in interaction.user.roles and self.bot.manager_role not in interaction.user.roles):
+            await interaction.followup.send(messages.MESSAGES["TRUSTED"], ephemeral=True)
+            return
+        
+        if (await self.dbManager.check_user(interaction.user.name+interaction.user.discriminator)):
+            await interaction.followup.send(messages.MESSAGES["REQUESTED"], ephemeral=True)
+            return
+        
+        if (not (await self.dbManager.check_availability(int(select.values[0])))):
+            await interaction.followup.send(messages.MESSAGES["NO_ACCOUNTS"], ephemeral=True)
+            return
+        
+        if (select.values[0] == "3"):
+            msg = "Please confirm"
+
+        SubSelector = SubtypeSelectorView(int(select.values[0]), self.dbManager, self.bot)
+        await interaction.followup.send(msg, view=SubSelector, ephemeral=True)
+
+    
+    '''   
     @discord.ui.button(label="Request an account", style=discord.ButtonStyle.blurple, custom_id="ticket_button")
     async def initTicket(self, interaction: discord.Interaction, button: discord.ui.Button):
-        guild = interaction.guild
-
-        user_str = str(interaction.user)
         await interaction.response.defer()
+        
+        user_str = str(interaction.user)
+
+        if (self.bot.trusted_role not in interaction.user.roles and self.bot.manager_role not in interaction.user.roles):
+            await interaction.followup.send(messages.MESSAGES["TRUSTED"], ephemeral=True)
+            return
+        
+        if (user_str not in self.answers.keys()):
+            await interaction.followup.send("Please select your account type first", ephemeral=True)
+            return
 
         if (self.bot.trusted_role not in interaction.user.roles and self.bot.manager_role not in interaction.user.roles):
             await interaction.followup.send(messages.MESSAGES["TRUSTED"], ephemeral=True)
@@ -210,3 +330,5 @@ class TicketStarterView(discord.ui.View):
         self.answers.pop(user_str)
 
         await self.bot.update_stock()
+
+        '''

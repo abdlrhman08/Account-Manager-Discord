@@ -1,16 +1,25 @@
 import discord
 import typing
+
+from discord.ext.commands.context import Context
 import messages
+import base64
 
 from discord.ext import commands
+from pyotp import totp
 
 from dbmanager.models import OWAccount, Payment 
 from utils import utils
 from views import views
 
+
 class Administration(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+
+        #b32code = base64.b32encode(bytes.fromhex("78406711dad5aa1b91ffc4f7c188f1468cc159f3")).decode()
+        #self.handler = totp.TOTP(b32code, 8)
 
     @commands.command()
     async def done(self, ctx: commands.Context):
@@ -67,12 +76,12 @@ class Administration(commands.Cog):
                 await ctx.send(f"{member.mention}\nAccount has been checked and payment has been scheduled for {date}")
             
             elif (self.__inadminpanel(ctx)):
-                payments = await self.bot.db.get_payments()
+                payments = await self.bot.db.get_payments_unconfirmed()
 
-                scheduledPaymentsEmbed = discord.Embed(title="Scheduled payments")
+                scheduledPaymentsEmbed = discord.Embed(title="Upcoming Scheduled payments")
 
                 if len(payments) == 0:
-                    scheduledPaymentsEmbed.add_field(name="", value="No current payments registered")
+                    scheduledPaymentsEmbed.add_field(name="", value="No current upcoming payments registered")
 
                 payment: Payment
                 for payment in payments:
@@ -87,21 +96,23 @@ class Administration(commands.Cog):
 
     @commands.command()
     async def accounts(self, ctx: commands.Context):
-        accounts = await self.bot.db.get_accounts()
+        if (self.__inadminpanel(ctx)):
+            accounts = await self.bot.db.get_accounts()
 
-        AccountsEmbed = discord.Embed(title="Current accounts on database")
+            AccountsEmbed = discord.Embed(title="Current accounts on database")
 
-        if len(accounts) == 0:
-            AccountsEmbed.add_field(name="", value="No current payments registered")
+            if len(accounts) == 0:
+                AccountsEmbed.add_field(name="", value="No current payments registered")
 
-        account: OWAccount
-        for account in accounts:
-            AccountsEmbed.add_field(name="", value=f"Account ID: {account.id} E-Mail: {account.email}, User: {account.user}, Finished: {account.finished}", inline=False)
+            account: OWAccount
+            for account in accounts:
+                AccountsEmbed.add_field(name="", value=f"Account ID: {account.id} E-Mail: {account.email}, User: {account.user}, Finished: {account.finished}", inline=False)
 
-        await ctx.send(embed=AccountsEmbed)
+            await ctx.send(embed=AccountsEmbed)
                 
 
     @commands.command()
+    @commands.has_any_role("Manager")
     async def paid(self, ctx: commands.Context, id: typing.Optional[int]):
         AccountDoneEmbed = discord.Embed(title="Payment placed", description=messages.MESSAGES["PLACED_PAYMENT"])
         AccountDoneEmbed.add_field(name="Payed by", value=ctx.author.mention)
@@ -145,10 +156,44 @@ class Administration(commands.Cog):
             await self.bot.update_stock(True)
             await ctx.send("Updated stock status")
 
+    @commands.command()
+    async def createauth(self, ctx: commands.Context):
+        if (self.__inadminpanel(ctx)):
+            await ctx.send("Creating authenticator handlers")
+
+            for row in await self.bot.db.get_secret_keys():
+                if (row[0] not in self.bot.auth_handlers.keys() and row[1] != None):
+                    b32code = base64.b32encode(bytes.fromhex(row[1])).decode()
+                    self.bot.auth_handlers[row[0]] = totp.TOTP(b32code, 8)
+
+            await ctx.send(f"Done creating {len(self.bot.auth_handlers)} authenticator handlers")
+
+
+
+    @commands.command()
+    @commands.has_any_role("Manager")
+    async def code(self, ctx: commands.Context):
+        await ctx.message.delete()
+
+        user = utils.get_channel_member(ctx.channel)
+        username = user.name + user.discriminator
+
+        id = int(ctx.channel.name[(13 + len(username)):])
+            
+        if (id in self.bot.auth_handlers):
+            await ctx.send(f"Code: {self.bot.auth_handlers[id].now()}")
+            return
+        
+        await ctx.send("There is no any authenticators attached for this account")
+
+    async def cog_command_error(self, ctx: commands.Context, error: Exception):
+        if (isinstance(error, commands.errors.MissingAnyRole)):
+            await ctx.message.delete()
+            await ctx.send("You don't have the permission to use this command")
+
     #To check if the commnd called in the right place
     def __inadminpanel(self, ctx: commands.Context):
         return ctx.channel == self.bot.admin_panel
-
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Administration(bot))

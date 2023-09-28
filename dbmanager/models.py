@@ -37,6 +37,8 @@ class OWAccount(Base):
     finished: Mapped[bool] = mapped_column(default=False)
     taken: Mapped[bool] = mapped_column(default=False)
 
+    hex_secret_key: Mapped[str] = mapped_column(String(41), nullable=True)
+
 class Payment(Base):
     __tablename__ = "payments"
 

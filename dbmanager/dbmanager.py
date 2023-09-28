@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlalchemy import select, func, update
+from sqlalchemy import select, func, update, exists
 
 from dbmanager.models import Base, OWAccount, Payment 
 
@@ -36,7 +36,8 @@ class DBManager():
         async with self.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
-    async def get_supply_size(self):
+    '''  Deprecated   '''
+    '''async def get_supply_size(self):
         async with self.session() as session:
             #All accounts
 
@@ -68,6 +69,50 @@ class DBManager():
             total = fresh_count + one_role_count + two_role_count + three_role_count 
 
             return total, fresh_count, one_role_count, two_role_count, three_role_count
+    '''
+
+    '''Check main account type availability'''
+    async def check_availability(self, type: int, sub: bool = False):
+        async with self.session() as session:
+            
+            if (sub):
+                availability_query = select(exists().where(
+                    OWAccount.type == type,
+                    OWAccount.taken == False
+                ))
+            else:
+                availability_query = select(exists().where(
+                    OWAccount.type / 10 < type + 1, 
+                    OWAccount.type / 10 >= type,
+                    OWAccount.taken == False
+            ))
+
+            return (await session.execute(availability_query)).scalar()
+    
+    async def get_supply_size(self, supply_count_list: dict):
+        types = None
+
+        async with self.session() as session:
+            types = (await session.execute(select(OWAccount.type, func.count(OWAccount.type)).select_from(OWAccount).where(
+                OWAccount.taken == False
+            ).group_by(OWAccount.type))).all()
+        
+        for row in types:
+            supply_count_list["total"] += row[1]
+            if (row[0] != 30):
+                supply_count_list[f"{int(row[0] / 10)}Total"] += row[1]
+            supply_count_list[str(row[0])] = row[1]
+
+    async def get_secret_keys(self):
+        async with self.session() as session:
+            query = select(
+                OWAccount.id,
+                OWAccount.hex_secret_key
+            ).filter(
+                OWAccount.taken == False
+            )
+            
+            return (await session.execute(query)).all()
 
     async def get_account(self, id: int) -> OWAccount:
         async with self.session() as session:
@@ -101,7 +146,18 @@ class DBManager():
             result = await session.execute(query)
 
             return result.one()[0]
+        
+    async def get_account_type_by_channel(self, channelID: str):
+        async with self.session() as session:
+            query = select(
+                OWAccount.type
+            ).filter(
+                OWAccount.channelid == channelID
+            )
 
+            result = await session.execute(query)
+
+            return result.one()[0]
 
     async def get_new_account(self, username: str, type: int):
         async with self.session() as session:
@@ -150,6 +206,15 @@ class DBManager():
     async def get_payments(self):
         async with self.session() as session:
             query = select(Payment)
+            result = await session.execute(query)
+
+            return result.scalars().all()
+        
+    async def get_payments_unconfirmed(self):
+        async with self.session() as session:
+            query = select(Payment).where(
+                Payment.confirmed == False
+            )
             result = await session.execute(query)
 
             return result.scalars().all()
@@ -254,10 +319,12 @@ class DBManager():
     async def check_user(self, username: str):
         async with self.session() as session:
 
-            account_count =  await session.execute(select(func.count(OWAccount.id)).select_from(OWAccount).filter(
+            user_check = await session.execute(select(exists().where(
                 OWAccount.user == username,
                 OWAccount.finished == False
-            ))
+            )))
+
+            return user_check.scalar()
 
             #A better and lighter approach is to get the count
             
@@ -267,11 +334,13 @@ class DBManager():
             )
 
             result = await session.execute(query)
-            '''
+            
 
             if  (account_count.scalar() > 0):
                 return False
         return True
+
+            '''
 
 
 
