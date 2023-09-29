@@ -65,7 +65,7 @@ Available Accounts: {accounts_dict["total"]}
     Life Weaver: {accounts_dict["3"]}
     Junker Queen: {accounts_dict["4"]}
     Ramattra: {accounts_dict["5"]}
-    Illari: {accounts_dict["5"]}
+    Illari: {accounts_dict["6"]}
 
 **One role:** {accounts_dict["1Total"]}
     Tank: {accounts_dict["11"]}
