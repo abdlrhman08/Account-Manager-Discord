@@ -117,7 +117,7 @@ class AccountManager(commands.Bot):
         if self.admin_panel is not None:
             print("Server already has channels, not creating new ones")
         else:
-            ticketEmbed = discord.Embed(title="Account request", description=messages.MESSAGES["REQUEST_CHANNEL"])
+            self.ticketEmbed = discord.Embed(title="Account request", description=messages.MESSAGES["REQUEST_CHANNEL"])
 
             adminCat = await guild.create_category(name="admin", overwrites=adminPanelPermissions)
             stockCat = await guild.create_category(name="stock")
@@ -132,7 +132,7 @@ class AccountManager(commands.Bot):
             self.stock_update = await self.stock_channel.send(content=utils.stock_msg_content(self.accounts))
 
             await self.update_stock(True)          
-            await self.request_channel.send(embed=ticketEmbed, view=views.TicketStarterView(self.db, self))
+            await self.request_channel.send(embed=self.ticketEmbed, view=views.TicketStarterView(self.db, self))
             #Create the administrator panel
             self.admin_panel = await guild.create_text_channel(name="admin-panel", overwrites=adminPanelPermissions, category=adminCat) 
 

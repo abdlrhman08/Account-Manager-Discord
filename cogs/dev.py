@@ -1,4 +1,7 @@
 import typing
+import discord
+
+from views import views
 
 from discord.ext import commands
 
@@ -19,5 +22,11 @@ class Development(commands.Cog):
             await self.bot.reload_extension(f"cogs.{extension}")
             await ctx.send(f"Reloaded extension: {extension}")
 
+    @commands.command()
+    async def generate(self, ctx: commands.Context, id: int):
+        if (utils.is_admin(ctx)):
+            channel: discord.TextChannel = discord.utils.get(self.bot.main_guild.text_channels, id=id)
+
+            await channel.send(embed=self.bot.ticketEmbed, view=views.TicketStarterView(self.bot.db, self.bot))
 async def setup(bot: commands.Bot):
     await bot.add_cog(Development(bot))
