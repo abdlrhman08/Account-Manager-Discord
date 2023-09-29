@@ -39,6 +39,9 @@ class OWAccount(Base):
 
     hex_secret_key: Mapped[str] = mapped_column(String(41), nullable=True)
 
+    serial: Mapped[str] = mapped_column(String(14), nullable=True)
+    restore_code: Mapped[str] = mapped_column(String(10), nullable=True)
+
 class Payment(Base):
     __tablename__ = "payments"
 

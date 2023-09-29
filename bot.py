@@ -40,9 +40,11 @@ class AccountManager(commands.Bot):
             "3": 0,     #LW
             "4": 0,     #JQ
             "5": 0,     #Ramattra
+            "6": 0,     #Illari
             "11": 0,    #Tank
             "12": 0,    #DPS
             "13": 0,    #Support
+            "14": 0,    #Rank up
             "21": 0,    #Dps + Support
             "22": 0,    #Tank + Dps
             "30": 0

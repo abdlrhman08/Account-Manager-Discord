@@ -134,7 +134,8 @@ class SubtypeSelectorView(discord.ui.View):
         super().__init__()
         self.dbManager = dbManager
         self.bot = bot
-
+        
+        self.main_type = main_type
         self.account_type = main_type * 10
 
         utils.populate_options(bot.accounts, self.children[0], main_type)
@@ -190,6 +191,14 @@ class SubtypeSelectorView(discord.ui.View):
         await ticket.send(embed=AccountReturnEmbed, view=TicketDone(self.dbManager, self.bot))
 
         await self.dbManager.set_channel(id, str(ticket.id))
+
+        #Update the total accounts available stock
+        self.bot.accounts["total"] -= 1
+        if (self.account_type != 30):
+            self.bot.accounts[f"{self.main_type}Total"] -= 1
+        self.bot.accounts[str(self.account_type)] -= 1
+        
+        await self.bot.update_stock()
         await interaction.edit_original_response(content=f"Opened ticket at {ticket.mention}", view=None)
         self.stop()
 

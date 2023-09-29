@@ -7,3 +7,18 @@ MESSAGES = {
     "REQUEST_CHANNEL": "If you want an account to start playing please choose the account type you want and click the button below to start a ticket. If you have been already given an account and it is not yet finished, a new one cannot be given",
     "PLACED_PAYMENT": "Your scheduled payment has been placed, please confirm your payment after receiving using the button below. You will be asked to write the amount received"
 }
+
+TYPES = [
+    "Sojourn",
+    "Kiriko",
+    "Life Weaver",
+    "Junker Queen",
+    "Ramattra",
+    "Illari",
+    "Tank",
+    "DPS",
+    "Support", 
+    "Rank up",
+    "DPS + Support", 
+    "Tank + DPS"
+]

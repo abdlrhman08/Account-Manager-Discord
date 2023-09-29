@@ -1,4 +1,5 @@
 import discord
+import messages
 
 from dbmanager.models import OWAccount
 
@@ -35,6 +36,10 @@ Birthdate: {account.birthdate}
 First Name: {name[0]}
 Last Name: {name[1]}
 
+Authenticator WinAuth Secret Key: {account.hex_secret_key}
+Restore Code: {account.restore_code}
+Serial: {account.serial}
+
 SafeUM User: {account.safe_um_user}
 SafeUM Pass: {account.safe_um_pass}
 
@@ -60,11 +65,13 @@ Available Accounts: {accounts_dict["total"]}
     Life Weaver: {accounts_dict["3"]}
     Junker Queen: {accounts_dict["4"]}
     Ramattra: {accounts_dict["5"]}
+    Illari: {accounts_dict["5"]}
 
 **One role:** {accounts_dict["1Total"]}
     Tank: {accounts_dict["11"]}
     Dps: {accounts_dict["12"]}
     Support: {accounts_dict["13"]}
+    Rank Up: {accounts_dict["14"]}
 
 **Two role:** {accounts_dict["2Total"]}
     Dps and Support: {accounts_dict["21"]}
@@ -88,25 +95,24 @@ _ _
     
     @classmethod
     def populate_options(self, stock: dict, select: discord.ui.Select, main_type: int):
-        labels = ["Sojourn", "Kiriko", "Life Weaver", "Junker Queen", "Ramattra", "Tank", "DPS", "Support", "DPS + Support", "Tank + DPS"]
-        
+    
         if (main_type == 0):
-            for i in range(5):
+            for i in range(6):
                 dict_key = str(i + 1)
                 if (stock[dict_key] > 0):
-                    select.add_option(label=labels[i], value=str(i))
+                    select.add_option(label=messages.TYPES[i], value=str(i))
 
 
         elif (main_type == 1):
-            for i in range(11, 14):
+            for i in range(11, 15):
                 dict_key = str(i)
                 if (stock[dict_key] > 0):
-                    select.add_option(label=labels[i - 6], value=str(i - 10))
+                    select.add_option(label=messages.TYPES[i - 6], value=str(i - 10))
 
         elif (main_type == 2):
             for i in range(21, 23):
                 dict_key = str(i)
                 if (stock[dict_key] > 0):
-                    select.add_option(label=labels[i - 13], value=str(i - 20))
+                    select.add_option(label=messages.TYPES[i - 13], value=str(i - 20))
 
 
