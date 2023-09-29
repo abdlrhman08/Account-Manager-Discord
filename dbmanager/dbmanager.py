@@ -92,6 +92,9 @@ class DBManager():
     async def get_supply_size(self, supply_count_list: dict):
         types = None
 
+        for k in supply_count_list.keys():
+            supply_count_list[k] = 0
+
         async with self.session() as session:
             types = (await session.execute(select(OWAccount.type, func.count(OWAccount.type)).select_from(OWAccount).where(
                 OWAccount.taken == False
