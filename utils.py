@@ -107,12 +107,12 @@ _ _
             for i in range(11, 15):
                 dict_key = str(i)
                 if (stock[dict_key] > 0):
-                    select.add_option(label=messages.TYPES[i - 6], value=str(i - 10))
+                    select.add_option(label=messages.TYPES[i - 5], value=str(i - 10))
 
         elif (main_type == 2):
             for i in range(21, 23):
                 dict_key = str(i)
                 if (stock[dict_key] > 0):
-                    select.add_option(label=messages.TYPES[i - 13], value=str(i - 20))
+                    select.add_option(label=messages.TYPES[i - 11], value=str(i - 20))
 
 
