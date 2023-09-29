@@ -73,6 +73,8 @@ class AccountManager(commands.Bot):
             self.trusted_role = discord.utils.get(self.main_guild.roles, name="Trustees")
             self.manager_role = discord.utils.get(self.main_guild.roles, name="Manager")
 
+            self.ticketEmbed = discord.Embed(title="Account request", description=messages.MESSAGES["REQUEST_CHANNEL"])
+
             #Update stock on start
             #self.accounts["total"], self.accounts["0"], self.accounts["1"], self.accounts["2"], self.accounts["3"] = await self.db.get_supply_size()
             #await self.update_stock()
