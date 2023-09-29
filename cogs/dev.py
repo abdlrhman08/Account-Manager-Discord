@@ -13,7 +13,7 @@ class Development(commands.Cog):
 
     @commands.command(name="reload", hidden=True)
     async def _reload(self, ctx: commands.Context, extension: typing.Optional[str]):
-        if (utils.is_admin(ctx)):
+        if (utils.is_admin(self.bot, ctx)):
 
             if (extension is None):
                 #TODO: reload all
@@ -24,7 +24,7 @@ class Development(commands.Cog):
 
     @commands.command()
     async def generate(self, ctx: commands.Context, id: int):
-        if (utils.is_admin(ctx)):
+        if (utils.is_admin(self.bot, ctx)):
             channel: discord.TextChannel = discord.utils.get(self.bot.main_guild.text_channels, id=id)
 
             await channel.send(embed=self.bot.ticketEmbed, view=views.TicketStarterView(self.bot.db, self.bot))
