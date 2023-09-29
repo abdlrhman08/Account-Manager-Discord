@@ -151,6 +151,7 @@ class SubtypeSelectorView(discord.ui.View):
     )
     async def select_callback(self, interaction: discord.Interaction, select: discord.ui.Select): # the function called when the user is done selecting options
         self.account_type += int(select.values[0])
+        print(self.account_type)
 
         await interaction.response.defer()
 

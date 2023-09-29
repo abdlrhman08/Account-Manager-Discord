@@ -94,7 +94,7 @@ _ _
             for i in range(6):
                 dict_key = str(i + 1)
                 if (stock[dict_key] > 0):
-                    select.add_option(label=messages.TYPES[i], value=str(i))
+                    select.add_option(label=messages.TYPES[i], value=str(i + 1))
 
 
         elif (main_type == 1):
