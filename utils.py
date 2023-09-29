@@ -9,13 +9,7 @@ class utils():
 
     @classmethod
     def export(self, account: OWAccount) -> str:
-        type: str
         name = account.name.split()
-
-        if (account.type == 0):
-            type = "50 Wins"
-        else:
-            type = str(account.type) + " Role"
 
         return f"""Info for {account.user} given account
 Created: {account.creation_date}
@@ -27,7 +21,7 @@ Email Password: {account.email_password}
 Battle Tag: {account.battle_tag}
 Battle.net Password: {account.password}
 
-Account Type: {type}
+Account Type: {messages.ACCOUNT_TYPES[int(account.type / 10)]}
 
 Country: Latvia
 Phone: {account.phonenum}

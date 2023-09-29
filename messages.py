@@ -22,3 +22,10 @@ TYPES = [
     "DPS + Support", 
     "Tank + DPS"
 ]
+
+ACCOUNT_TYPES = [
+    "50 Win",
+    "1 Role",
+    "2 Role",
+    "3 Role"
+]
