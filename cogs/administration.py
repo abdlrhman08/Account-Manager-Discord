@@ -158,11 +158,14 @@ class Administration(commands.Cog):
             await ctx.send("Creating authenticator handlers")
 
             for row in await self.bot.db.get_secret_keys():
+                count = 0
+
                 if (row[0] not in self.bot.auth_handlers.keys() and row[1] != None):
                     b32code = base64.b32encode(bytes.fromhex(row[1])).decode()
                     self.bot.auth_handlers[row[0]] = totp.TOTP(b32code, 8)
+                    count += 1
 
-            await ctx.send(f"Done creating {len(self.bot.auth_handlers)} authenticator handlers")
+            await ctx.send(f"Done creating {count} authenticator handlers")
 
 
 
