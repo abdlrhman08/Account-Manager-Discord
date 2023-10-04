@@ -17,10 +17,6 @@ class Administration(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-
-        #b32code = base64.b32encode(bytes.fromhex("78406711dad5aa1b91ffc4f7c188f1468cc159f3")).decode()
-        #self.handler = totp.TOTP(b32code, 8)
-
     @commands.command()
     async def done(self, ctx: commands.Context):
         if (self.__inadminpanel(ctx)):   
@@ -185,6 +181,15 @@ class Administration(commands.Cog):
             return
         
         await ctx.send("There is no any authenticators attached for this account")
+
+    @commands.command()
+    @commands.has_any_role("Manager")
+    async def destroy(self, ctx: commands.Context, id: int):
+        self.bot.auth_handlers.pop(id)
+
+        await ctx.send("Deleted authenticator for account: " + id)
+
+
 
     async def cog_command_error(self, ctx: commands.Context, error: Exception):
         if (isinstance(error, commands.errors.MissingAnyRole)):

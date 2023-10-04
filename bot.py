@@ -98,7 +98,6 @@ class AccountManager(commands.Bot):
     async def on_guild_join(self, guild: discord.Guild):
         self.manager_role = discord.utils.get(guild.roles, name="Manager")
 
-
         adminPanelPermissions = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
             guild.owner: discord.PermissionOverwrite(view_channel=True, send_messages=True),
