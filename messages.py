@@ -20,7 +20,8 @@ TYPES = [
     "Support", 
     "Rank up",
     "DPS + Support", 
-    "Tank + DPS"
+    "Tank + DPS",
+    "Not Specified"
 ]
 
 ACCOUNT_TYPES = [

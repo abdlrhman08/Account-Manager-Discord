@@ -11,6 +11,18 @@ class utils():
     def export(self, account: OWAccount) -> str:
         name = account.name.split()
 
+        offset = 0
+        if (account.type < 10):
+            offset = 1
+        elif (account.type < 20):
+            offset = 5
+        elif (account.type < 30):
+            offset = 11
+        else:
+            offset = 18
+        
+        hero = messages.TYPES[account.type - offset]
+
         return f"""Info for {account.user} given account
 Created: {account.creation_date}
 Finished: {account.finished_date}
@@ -22,6 +34,7 @@ Battle Tag: {account.battle_tag}
 Battle.net Password: {account.password}
 
 Account Type: {messages.ACCOUNT_TYPES[int(account.type / 10)]}
+Hero or Role: {hero}
 
 Country: Latvia
 Phone: {account.phonenum}

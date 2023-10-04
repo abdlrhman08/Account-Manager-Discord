@@ -164,6 +164,10 @@ class SubtypeSelectorView(discord.ui.View):
             self.stop()
             return
         
+        if (await self.dbManager.check_user(interaction.user.name+interaction.user.discriminator)):
+            await interaction.followup.send(messages.MESSAGES["REQUESTED"], ephemeral=True)
+            return
+        
                 #TODO: Put overwrites in their own place
         overwrites = {
             interaction.guild.default_role: discord.PermissionOverwrite(view_channel=False, send_messages=False),
