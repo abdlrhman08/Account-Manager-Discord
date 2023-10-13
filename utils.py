@@ -68,11 +68,9 @@ Available Accounts: {accounts_dict["total"]}
 **Accounts needed:**
 **50 Wins:** {accounts_dict["0Total"]}
     Sojourn: {accounts_dict["1"]}
-    Kiriko: {accounts_dict["2"]}
+    Kiriko + Illari: {accounts_dict["2"]}
     Life Weaver: {accounts_dict["3"]}
-    Junker Queen: {accounts_dict["4"]}
-    Ramattra: {accounts_dict["5"]}
-    Illari: {accounts_dict["6"]}
+    Junker Queen + Ramattra: {accounts_dict["4"]}
 
 **One role:** {accounts_dict["1Total"]}
     Tank: {accounts_dict["11"]}

@@ -10,9 +10,9 @@ MESSAGES = {
 
 TYPES = [
     "Sojourn",
-    "Kiriko",
+    "Kiriko + Illari",
     "Life Weaver",
-    "Junker Queen",
+    "Junker Queen + Ramattra",
     "Ramattra",
     "Illari",
     "Tank",

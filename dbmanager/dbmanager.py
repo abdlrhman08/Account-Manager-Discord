@@ -36,41 +36,6 @@ class DBManager():
         async with self.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
-    '''  Deprecated   '''
-    '''async def get_supply_size(self):
-        async with self.session() as session:
-            #All accounts
-
-            fresh =  await session.execute(select(func.count(OWAccount.id)).select_from(OWAccount).filter(
-                OWAccount.type == 0,
-                OWAccount.taken == False
-            ))
-            
-            one_role = await session.execute(select(func.count(OWAccount.id)).select_from(OWAccount).filter(
-                OWAccount.type == 1,
-                OWAccount.taken == False
-            ))
-
-            two_role =  await session.execute(select(func.count(OWAccount.id)).select_from(OWAccount).filter(
-                OWAccount.type == 2,
-                OWAccount.taken == False
-            ))
-
-            three_role =  await session.execute(select(func.count(OWAccount.id)).select_from(OWAccount).filter(
-                OWAccount.type == 3,
-                OWAccount.taken == False
-            ))
-
-
-            fresh_count = fresh.scalar()
-            one_role_count = one_role.scalar()
-            two_role_count = two_role.scalar()                
-            three_role_count = three_role.scalar()
-            total = fresh_count + one_role_count + two_role_count + three_role_count 
-
-            return total, fresh_count, one_role_count, two_role_count, three_role_count
-    '''
-
     '''Check main account type availability'''
     async def check_availability(self, type: int, sub: bool = False):
         async with self.session() as session:
@@ -265,14 +230,6 @@ class DBManager():
             await session.execute(query)
             await session.commit()
 
-
-            '''
-            query = select(OWAccount).where(OWAccount.id==accountID)
-            result = await session.execute(query)
-
-            account = result.scalars().one()
-            account.channelid = channelID '''
-
     async def set_payment_done(self, id: int):
         async with self.session() as session:
             if (id < 1000):
@@ -328,22 +285,5 @@ class DBManager():
             )))
 
             return user_check.scalar()
-
-            #A better and lighter approach is to get the count
-            
-            '''query = select(OWAccount).filter(
-                OWAccount.user == username,
-                OWAccount.finished == False
-            )
-
-            result = await session.execute(query)
-            
-
-            if  (account_count.scalar() > 0):
-                return False
-        return True
-
-            '''
-
 
 
