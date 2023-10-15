@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy import select, func, update, exists
 
-from dbmanager.models import Base, OWAccount, Payment 
+from dbmanager.models import Base, OWAccount, Payment, Authenticator 
 
 
 class DBManager():    

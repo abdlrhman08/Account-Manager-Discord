@@ -9,7 +9,9 @@ class utils():
 
     @classmethod
     def export(self, account: OWAccount) -> str:
-        name = account.name.split()
+        print(account.authenticator.hex_secret_key)
+
+        '''  name = account.name.split()
 
         offset = 0
         if (account.type < 10):
@@ -21,36 +23,10 @@ class utils():
         else:
             offset = 18
         
-        hero = messages.TYPES[account.type - offset]
+        hero = messages.TYPES[account.type - offset]'''
 
-        return f"""Info for {account.user} given account
-Created: {account.creation_date}
-Finished: {account.finished_date}
+        #return f"""Info for {account.authenticator.hex_secret_key} given account"""
 
-Recovery mail: {account.email}
-Email Password: {account.email_password}
-
-Battle Tag: {account.battle_tag}
-Battle.net Password: {account.password}
-
-Account Type: {messages.ACCOUNT_TYPES[int(account.type / 10)]}
-Hero or Role: {hero}
-
-Country: Latvia
-Phone: {account.phonenum}
-Birthdate: {account.birthdate}
-
-First Name: {name[0]}
-Last Name: {name[1]}
-
-Authenticator WinAuth Secret Key: {account.hex_secret_key}
-Restore Code: {account.restore_code}
-Serial: {account.serial}
-
-SafeUM User: {account.safe_um_user}
-SafeUM Pass: {account.safe_um_pass}
-
-Description: {account.description}"""
     
     @classmethod
     def get_channel_member(self, channel: discord.TextChannel):
